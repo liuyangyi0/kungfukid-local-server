@@ -1,0 +1,2 @@
+# Version exercised in the source workspace; SDK compatibility uses this package.
+cryptography==50.0.1
