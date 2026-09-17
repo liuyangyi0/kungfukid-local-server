@@ -298,8 +298,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 2748,
-      "sha256": "401d3174481f2685f76e8c549daaaafa824ceae924fbb50561095bd2c3b3e3b6"
+      "bytes": 3340,
+      "sha256": "5c35b9d8180dc423dc83f85ebe56bdfa6998991cb9ec84bca379f4d35838cb5f"
     },
     {
       "path": "requirements.txt",
@@ -323,13 +323,73 @@
     },
     {
       "path": "docs/CLIENT_COMPATIBILITY.md",
-      "bytes": 4530,
-      "sha256": "f03148f39bdd0156e93c472fc112c2fb34088a5b9780f2836551f2c2ec924dc7"
+      "bytes": 23454,
+      "sha256": "73e388dfed5c6eee6cf877c8250803c0012e08ac5dd0e2c399cb050545aa5fdd"
     },
     {
       "path": "client-adapter/build.cmd",
-      "bytes": 1123,
-      "sha256": "3a71281938b9e3aeba646f4f80043ed6062f0cbbcb9738e7b966b91111006dab"
+      "bytes": 1260,
+      "sha256": "361ecfe14e3613f7bf0eb978e3d1049e8f12821ac917cc0998a1291c032b11c1"
+    },
+    {
+      "path": "docs/DEPLOYMENT_WALKTHROUGH.md",
+      "bytes": 13816,
+      "sha256": "18bcd85e7e21b650d38a5040da1e058e23a612f063166a5510c42980b5d9ee17"
+    },
+    {
+      "path": "docs/AI_PROTOCOL_WORKFLOW.md",
+      "bytes": 4993,
+      "sha256": "0887fff266852846546962c0e430b3382e73884556414e32c15bffb9f255f56c"
+    },
+    {
+      "path": "client-adapter/tools/inspect_client.py",
+      "bytes": 4422,
+      "sha256": "c22a04cee0deb72ad200066eafa3d335992825f942add831130b6dd0a32297d9"
+    },
+    {
+      "path": "client-adapter/tools/create_local_account.py",
+      "bytes": 1773,
+      "sha256": "1a2c75b968a3d727523eeab0172c87130d5992f2d87069859ec27ca28ca600b3"
+    },
+    {
+      "path": "client-adapter/tests/test_public_tools.py",
+      "bytes": 2594,
+      "sha256": "3b27f9f1692a66968557ca039cd1a259c5e0bd010cb70e7128ddc002eb1afc2e"
+    },
+    {
+      "path": "client-adapter/src/kk_inject.c",
+      "bytes": 5000,
+      "sha256": "83cbaf7712e10e5dac90ff6196c61e915e8431f48eb0259837e2c259b582dfe6"
+    },
+    {
+      "path": "client-adapter/tests/sdo_http_contract.py",
+      "bytes": 259,
+      "sha256": "64ade520706bd23819922717a34015156b516f9932bf24c86ddaf489e8a56a89"
+    },
+    {
+      "path": "client-adapter/tests/sdo_outer_password_codec.py",
+      "bytes": 256,
+      "sha256": "d8c202f5343e5981f2352a3236c745b584ee1dd2863ec4fc34c31af59c71e121"
+    },
+    {
+      "path": "client-adapter/tests/sdo_password_bridge.py",
+      "bytes": 259,
+      "sha256": "8356d77fb2f2741c5730f019aa206b714f860ad48b5d95919694e4c1d33e4bad"
+    },
+    {
+      "path": "client-adapter/tests/test_sdo_http_contract.py",
+      "bytes": 1485,
+      "sha256": "642931d0fd51fb610d44e4b24fa2f414b9960214348c28b96bee066c022d691c"
+    },
+    {
+      "path": "client-adapter/tests/test_sdo_outer_password_codec.py",
+      "bytes": 2798,
+      "sha256": "28195187fe3c4545ce1d7a6a687afc0da2ff588be3d411704575c0198b14248b"
+    },
+    {
+      "path": "client-adapter/tests/test_sdo_password_bridge.py",
+      "bytes": 3612,
+      "sha256": "58d933e31c3be871721a7f51c74ce0beeb1e137975d12f57826871bb7f798764"
     }
   ],
   "excludes": [

@@ -19,6 +19,8 @@ cl /nologo /std:c++17 /EHsc /MT /LD client-adapter\src\kk_sdo_http_path_probe.cp
 if errorlevel 1 goto failed
 cl /nologo /std:c++17 /EHsc /MT /LD client-adapter\src\kk_roleprop_observer.cpp /Fobuild\adapter\observer.obj /Febuild\adapter\observer.dll /link user32.lib
 if errorlevel 1 goto failed
+cl /nologo /MT /TC client-adapter\src\kk_inject.c /Fobuild\adapter\inject.obj /Febuild\adapter\kk_inject.exe
+if errorlevel 1 goto failed
 popd
 exit /b 0
 :failed

@@ -8,9 +8,13 @@
 
 - `server/kk_local/`：本地账号认证、游戏帧编解码、档案/背包、房间、地图准入、聊天、排行榜等。
 - `server/tests/`：临时数据库与合成数据测试，不需要运行原客户端。
-- `client-adapter/src/`：自行编写的请求重定向、公钥适配、密码输入兼容、路径观察及角色表观察模块。
+- `client-adapter/src/`：自行编写的请求重定向、公钥适配、密码输入兼容、路径观察、角色表观察模块和DLL加载工具。
 - `client-adapter/reference-scripts/`：原实验的主客体启动模板，仅供参考，不能直接用于任意电脑。
 - `docs/CLIENT_COMPATIBILITY.md`：客户端适配方法、前置条件和迁移步骤。
+- `docs/DEPLOYMENT_WALKTHROUGH.md`：从目录布局到依赖、编译、账号、服务、公钥、加载和验收的逐步操作。
+- `docs/AI_PROTOCOL_WORKFLOW.md`：可复用的AI协作协议恢复与测试流程。
+- `client-adapter/tools/`：只读PE/公钥检查与隐藏密码输入的本地账号创建工具。
+- `client-adapter/tests/`：公开工具和认证封装的合成测试。
 - `docs/SERVICE.md`：服务运行方式、数据库和已知边界。
 - `PUBLIC_SOURCE_MANIFEST.json`：本次发布的源文件清单与内容指纹。
 
@@ -21,6 +25,7 @@
 ```powershell
 python -m pip install -r requirements.txt
 python -m unittest discover -s server/tests -p "test_*.py" -v
+python -m unittest discover -s client-adapter/tests -p "test_*.py" -v
 ```
 
 测试中的密码、身份、数据包是明确的合成夹具，不可用作真实部署默认凭据。
@@ -41,4 +46,4 @@ python -m unittest discover -s server/tests -p "test_*.py" -v
 
 本次未替权利人选择开源许可证；公开可见不等于授予任意复制或再分发许可。第三方名称与软件权利归各自权利人所有。请在明确授权范围后选择适当 LICENSE。
 
-详见 [安全说明](SECURITY.md) 和 [客户端适配](docs/CLIENT_COMPATIBILITY.md)。
+建议阅读顺序：[部署操作](docs/DEPLOYMENT_WALKTHROUGH.md) → [兼容实现详解](docs/CLIENT_COMPATIBILITY.md) → [服务边界](docs/SERVICE.md)。另见 [安全说明](SECURITY.md)。
