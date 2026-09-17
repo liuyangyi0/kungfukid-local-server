@@ -18,6 +18,8 @@ python -m server.kk_local.sdo_service --client-root C:\MyGameLab\Client --runtim
 
 `sdo_service` 使用客户端根下配置解析地图，只在支持的模式/地图范围内准入。提供服务代码并不等于任意版本客户端即插即用。
 
+真实配置加载依赖随本仓库发布的`tools/resource-recovery/spf2_index.py`、`spf2_extract.py`。这两项不是pip依赖，部署时必须保留相对路径。无mock的合成包测试位于`server/tests/test_client_config_package.py`；资源包由测试临时生成，不发布原客户端资源。
+
 ## 3. 账号
 
 数据库通过 `Store` 自动建表，不随仓库提供预置真实账号。注册与登录在 `auth_service.py` 的 `kk-local-auth-v1` 本地 API；`tests/test_auth.py` 展示合成请求。API 消息为4字节网络序长度加 UTF-8 JSON，含 `schema/operation/arguments`。

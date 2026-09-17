@@ -288,8 +288,8 @@
     },
     {
       "path": "client-adapter/reference-scripts/Start-SdoOriginalWindowHost.ps1",
-      "bytes": 975,
-      "sha256": "04e5ef35739928770a94f00cdb500d709d0887567f5f91d527d108e1c8f70d81"
+      "bytes": 1325,
+      "sha256": "eec837a84ad27885a4559e07d68ba13e698143b6a592db4bb7e76942fe96ad22"
     },
     {
       "path": "client-adapter/reference-scripts/Start-SdoOriginalWindowGuest.ps1",
@@ -298,8 +298,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 3340,
-      "sha256": "5c35b9d8180dc423dc83f85ebe56bdfa6998991cb9ec84bca379f4d35838cb5f"
+      "bytes": 3676,
+      "sha256": "f765a9f6fd1dc748ba244aebfe5806a84fd10a4b512500eac753ffb512c9864b"
     },
     {
       "path": "requirements.txt",
@@ -308,23 +308,23 @@
     },
     {
       "path": ".gitignore",
-      "bytes": 274,
-      "sha256": "9d51b5ae23b42f6e48ed998d4fd5ad7962b2656723769af8c95c1659ebcac802"
+      "bytes": 315,
+      "sha256": "42f545fc8034fcbc30b0cc81c6796d22644a9444659a32a537ba52cbd8abd9df"
     },
     {
       "path": "SECURITY.md",
-      "bytes": 1332,
-      "sha256": "25b975e2e39aaf8bc591f749d45a9d7f64d6f3e4d7ac5f8c64b5d20dbd7c8d76"
+      "bytes": 1783,
+      "sha256": "c7d3c0b2751080ae52441e3daea7793e2f4ae310b798884ae04d56961fd193a0"
     },
     {
       "path": "docs/SERVICE.md",
-      "bytes": 3305,
-      "sha256": "fcee52d716e192e191289582a32fb609da31a72c3225449a52ff76438c6bc787"
+      "bytes": 3618,
+      "sha256": "7498c0ccc8a97d6aed551bcf46d90e6253bb07e1350a806147d75e08d27b28c4"
     },
     {
       "path": "docs/CLIENT_COMPATIBILITY.md",
-      "bytes": 23454,
-      "sha256": "73e388dfed5c6eee6cf877c8250803c0012e08ac5dd0e2c399cb050545aa5fdd"
+      "bytes": 23803,
+      "sha256": "5115cc1c6376f9acb7e9b60c3371021efcd8e7a604a59325f04f4b240bb08601"
     },
     {
       "path": "client-adapter/build.cmd",
@@ -333,8 +333,8 @@
     },
     {
       "path": "docs/DEPLOYMENT_WALKTHROUGH.md",
-      "bytes": 13816,
-      "sha256": "18bcd85e7e21b650d38a5040da1e058e23a612f063166a5510c42980b5d9ee17"
+      "bytes": 14558,
+      "sha256": "54c7ad23883a275db53fd4df54afc5b46a8155c3acf2abcab60cf2d451bd75a7"
     },
     {
       "path": "docs/AI_PROTOCOL_WORKFLOW.md",
@@ -390,6 +390,31 @@
       "path": "client-adapter/tests/test_sdo_password_bridge.py",
       "bytes": 3612,
       "sha256": "58d933e31c3be871721a7f51c74ce0beeb1e137975d12f57826871bb7f798764"
+    },
+    {
+      "path": "tools/resource-recovery/spf2_index.py",
+      "bytes": 8665,
+      "sha256": "df159b196cd6168d61f3fdfffec3b81118c4b023710364c53541ba6975ed1f64"
+    },
+    {
+      "path": "tools/resource-recovery/spf2_extract.py",
+      "bytes": 7348,
+      "sha256": "ba078c34b7b1f25537c873100f867b4cc8f119ab3f1afc11d838ec376d60b915"
+    },
+    {
+      "path": "tools/resource-recovery/test_spf2_index.py",
+      "bytes": 3244,
+      "sha256": "0dce45f25ec5720cce83de9f2b7a330b0d8e644ad8a12a395c8c46a6f47f1437"
+    },
+    {
+      "path": "tools/resource-recovery/test_spf2_extract.py",
+      "bytes": 2060,
+      "sha256": "3b89ae75e693f5ab8879239ea507121c09260ae9a1ff949212e50b3ea6a3c91c"
+    },
+    {
+      "path": "server/tests/test_client_config_package.py",
+      "bytes": 3758,
+      "sha256": "c7d6c9d93882a4299288dcbf0d33aef600adbeb215b4aaa573ac1c34b1452881"
     }
   ],
   "excludes": [

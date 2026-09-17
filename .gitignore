@@ -16,6 +16,11 @@ Secrets/
 *.key
 *.enc
 *.bin
+*.spf2
+*.rws
+*.bsp
+Extracted/
+extracted/
 *.log
 *.jsonl
 *.exe

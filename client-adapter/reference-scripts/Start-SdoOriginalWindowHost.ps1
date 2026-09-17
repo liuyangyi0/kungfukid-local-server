@@ -1,11 +1,23 @@
 [CmdletBinding()]
-param([ValidateSet('OriginalSdk','LocalApi')][string]$AuthenticationMode='OriginalSdk')
+param(
+    [switch]$OpenVmConsole,
+    [string]$VmPath,
+    [string]$VmrunPath='C:\Program Files (x86)\VMware\VMware Workstation\vmrun.exe'
+)
 $ErrorActionPreference='Stop'
-$c=Import-Clixml -LiteralPath 'D:\KungFuKid-Lab\Secrets\kk-vm-credential.clixml'
-& 'C:\Program Files (x86)\VMware\VMware Workstation\vmrun.exe' -T ws -gu $c.UserName -gp $c.GetNetworkCredential().Password runProgramInGuest 'D:\KungFuKid-Lab\VMs\KK-M1-Semantic-Probe\KK-M1-Semantic-Probe.vmx' -noWait -interactive 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File 'C:\KK-Lab\Start-SdoOriginalWindowGuest.ps1' -AuthenticationMode $AuthenticationMode
-if($LASTEXITCODE){throw 'Unable to launch original login in VM'}
-if($AuthenticationMode -eq 'LocalApi'){
- 'Compatibility preparation is starting inside the VM. Wait for compatibility-ready.json before local API authentication.'
-}else{
- 'Original login is starting inside the VM. Enter credentials there, not in chat.'
+# Public template intentionally does not call authenticated guest operations.
+# VMware's -gp puts the guest password on a process command line. Run the
+# supplied guest script from the already signed-in VM desktop instead.
+if($OpenVmConsole){
+    if(-not $VmPath -or -not(Test-Path -LiteralPath $VmPath -PathType Leaf)){
+        throw 'Provide the path of your own existing .vmx file with -VmPath.'
+    }
+    if([IO.Path]::GetExtension($VmPath) -ine '.vmx'){throw 'Expected a VMware .vmx file'}
+    if(-not(Test-Path -LiteralPath $VmrunPath -PathType Leaf)){throw 'VMware vmrun was not found'}
+    & $VmrunPath -T ws start ([IO.Path]::GetFullPath($VmPath)) gui
+    if($LASTEXITCODE){throw 'Unable to open the requested VM console'}
 }
+Write-Output 'No guest credential has been read or passed to a child process.'
+Write-Output 'In the signed-in VM desktop, run the following command after the local service is ready:'
+Write-Output "& 'C:\KK-Lab\Start-SdoOriginalWindowGuest.ps1' -AuthenticationMode OriginalSdk"
+Write-Output 'This host template opens the VM console only; it does not remotely launch the game or authenticate a player.'

@@ -2,12 +2,13 @@
 
 自建的 Python / SQLite 本地兼容服务与 Windows 客户端适配源码。
 
-这是开发中的实验项目，**不是完整游戏发行包，也不是已恢复全部协议的旧服务器**。不包含原客户端、游戏素材、账号数据库、IDA/PDB、抓包、内存转储或密钥。使用者须自行提供有权使用的客户端，并在隔离环境内测试。
+这是开发中的实验项目，**不是完整游戏发行包，也不是已恢复全部协议的旧服务器**。不包含原客户端、游戏素材、账号数据库、IDA/PDB、抓包、内存转储、用户口令或认证私钥。源码包含解析既有文件/帧格式所需的固定兼容常量，不是旧服务端私钥。使用者须自行提供有权使用的客户端，并在隔离环境内测试。
 
 ## 内容
 
 - `server/kk_local/`：本地账号认证、游戏帧编解码、档案/背包、房间、地图准入、聊天、排行榜等。
 - `server/tests/`：临时数据库与合成数据测试，不需要运行原客户端。
+- `tools/resource-recovery/`：地图配置运行时实际依赖的SPF2索引/解码源码与合成测试；不包含资源包或解包结果。
 - `client-adapter/src/`：自行编写的请求重定向、公钥适配、密码输入兼容、路径观察、角色表观察模块和DLL加载工具。
 - `client-adapter/reference-scripts/`：原实验的主客体启动模板，仅供参考，不能直接用于任意电脑。
 - `docs/CLIENT_COMPATIBILITY.md`：客户端适配方法、前置条件和迁移步骤。
@@ -26,6 +27,7 @@
 python -m pip install -r requirements.txt
 python -m unittest discover -s server/tests -p "test_*.py" -v
 python -m unittest discover -s client-adapter/tests -p "test_*.py" -v
+python -m unittest discover -s tools/resource-recovery -p "test_*.py" -v
 ```
 
 测试中的密码、身份、数据包是明确的合成夹具，不可用作真实部署默认凭据。

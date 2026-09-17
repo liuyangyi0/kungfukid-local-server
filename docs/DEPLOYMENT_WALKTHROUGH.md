@@ -33,9 +33,12 @@ python -m pip download -r requirements.txt --only-binary=:all: --dest .\wheelhou
 python -m pip install --no-index --find-links .\wheelhouse -r requirements.txt
 python -m unittest discover -s server/tests -p "test_*.py" -v
 python -m unittest discover -s client-adapter/tests -p "test_*.py" -v
+python -m unittest discover -s tools/resource-recovery -p "test_*.py" -v
 ```
 
 离线轮子、Python安装程序和编译器不随源码仓库上传。
+
+地图加载额外依赖本仓库的`tools/resource-recovery/spf2_index.py`和`spf2_extract.py`，不是pip包。复制服务源码时保留这个相对目录；只复制`server/`会导致`ModuleNotFoundError`。`server/tests/test_client_config_package.py`使用现场生成的合成SPF2、不mock解析器，覆盖实际索引→解码→XML→地图准入路径。
 
 ## 2. 推荐先复用原实验目录形状
 
@@ -171,7 +174,7 @@ python client-adapter/tools/inspect_client.py --public-key C:\KK-Lab\sdo-origina
 & 'C:\KK-Lab\Start-SdoOriginalWindowGuest.ps1' -AuthenticationMode OriginalSdk
 ```
 
-不要从Windows服务的Session0直接启动游戏。宿主vmrun的`-interactive`在某些环境下仍可能落入Session0，应检查进程SessionId和可见窗口；必要时使用该用户的InteractiveToken一次性任务，不存储Windows明文密码。
+不要从Windows服务的Session0直接启动游戏。公开宿主模板现在只可打开VM控制台，不读取VM凭据，也不使用`vmrun -gu/-gp`远程启动；避免VM密码出现在子进程参数。请在已登录VM桌面运行上述guest命令。原实验的guest operations和`-interactive`不构成公开推荐入口。
 
 guest启动器会依序：检查服务端口 → 启动游戏 → 查找唯一SDK子进程 → 请求适配 → 输入适配 → 路径观察 → 角色表观察 → 写compatibility-ready。每个阶段都依据本轮PID和日志增量，而非固定长等待后猜成功。
 
@@ -193,7 +196,7 @@ guest启动器会依序：检查服务端口 → 启动游戏 → 查找唯一SD
 
 在原框输入第5步创建的账号密码。原SDK应调用checkAccountType → getGuid → staticLogin，本地服务才发会话与游戏绑定。HTTP 200不等于认证通过。
 
-角色观察器只读表指针并写`kk-roleprop-ready.txt`。服务要求新鲜、非零且属于本轮的就绪记录，才可下发完整档案/装备。它不创建角色表；若正常路径没有初始化该表，仍需定位原客户端初始化顺序，不能手写非零文件。
+角色观察器只读表指针并写`kk-roleprop-ready.txt`。现有`ReadyFile`仅验证修改时间不早于本轮门禁起点、以及十六进制指针范围，不验证文件写入者PID/创建时间/运行ID。guest启动器移走旧文件，认证层另行校验当前游戏进程，两者不等于就绪文件强绑定；这一增强尚未实现。它也不创建角色表，若正常路径未初始化该表，应修复真实初始化顺序，不能手写非零文件。
 
 SDK认证成功但人物读取失败时，先核对角色表和完整档案的时序，不先换密码或强制应用状态。原始SDK路径成功回调与本地API路径是不同入口，不要同时运行两套初始化。
 
@@ -204,7 +207,7 @@ SDK认证成功但人物读取失败时，先核对角色表和完整档案的�
 | 服务 | ready.json、准确PID及四个监听端口 | 不启动客户端 |
 | SDK适配 | 当前PID的ready及用户态事件标记 | 不提交密码 |
 | 密码 | 错误密码失败、正确密码成功、挑战不可重放 | 查接口/密钥/身份，别回假成功 |
-| 档案 | 角色表新鲜就绪、完整物品记录、无空指针 | 不提前发人物包 |
+| 档案 | 真实角色表已建、时间/指针基础门禁、完整物品记录 | 当前文件无PID绑定，不提前发人物包 |
 | 大厅 | 原登录层不遮挡、昵称/档案正常 | 不以页面截图代替协议阶段 |
 | 房间 | 创建/设置/换队/返回、失败后连接仍可用 | 逐项核对状态/通知 |
 | 重入 | 游戏退出再启动、服务重启配套新公钥 | 不重复注入已初始化客户端 |

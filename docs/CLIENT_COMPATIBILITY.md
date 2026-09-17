@@ -31,7 +31,7 @@
 | 文件 | 负责什么 |
 |---|---|
 | [Start-SdoOriginalWindowGuest.ps1](../client-adapter/reference-scripts/Start-SdoOriginalWindowGuest.ps1) | VM内启动顺序、SDK父进程筛选、加载模块、等待就绪收据 |
-| [Start-SdoOriginalWindowHost.ps1](../client-adapter/reference-scripts/Start-SdoOriginalWindowHost.ps1) | 宿主通过现有VM控制通道运行guest启动器 |
+| [Start-SdoOriginalWindowHost.ps1](../client-adapter/reference-scripts/Start-SdoOriginalWindowHost.ps1) | 公开版只打开可选VM控制台并提示在guest桌面运行，不传VM密码 |
 | [kk_sdo_request_adapter.cpp](../client-adapter/src/kk_sdo_request_adapter.cpp) | 请求重定向、URI兼容、公钥安装、原调用转发 |
 | [kk_sdo_input_provider.cpp](../client-adapter/src/kk_sdo_input_provider.cpp) | UI线程切换输入模式、处理遗留失败锁、重新识别密码控件 |
 | [sdo_service.py](../server/kk_local/sdo_service.py) | 回环HTTP接口、临时密钥、认证到游戏绑定的交接 |
@@ -277,6 +277,8 @@ record = (
 当前端口分工：17999为本地账号API，18082为原SDK HTTP，18000为登录兼容TCP，18001为游戏TCP和P2P UDP。都属于隔离VM内的本地服务，不连接旧运营服务。
 
 `WindowsSdkVerifier`由连接拥有者找到SDK，再核验它的游戏父进程、映像路径和创建时间。这个方法只适用于同机环境；它不是跨机器登录协议。
+
+注意，认证层进程绑定不等于就绪文件绑定。当前`ReadyFile`只检查`kk-roleprop-ready.txt`的mtime和指针格式/范围；文件不含PID、创建时间或RunId。移走旧收据是启动器的基础防错步骤，不是强身份验证。教程不再声称该文件已证明属于当前客户端。
 
 ## 10. 构建与接线方法
 
