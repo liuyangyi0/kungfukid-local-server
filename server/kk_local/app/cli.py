@@ -52,6 +52,7 @@ def mode_parser(mode):
         p.add_argument('--auth-port',type=int,default=17999);p.add_argument('--sdk-port',type=int,default=18000)
         p.add_argument('--game-port',type=int,default=18001);p.add_argument('--udp-port',type=int,default=18001)
         p.add_argument('--health-port',type=int,default=18090)
+        p.add_argument('--combat-skill-xml',help='Trusted server SkillProperty XML for correlated guard/hit receipts; optional')
     elif mode=='native':
         p.description='Own native wire development: TLS account API; client/UDP adapter qualification pending; loopback only'
         for name in ('database','events','auth-certificate','auth-key'):p.add_argument('--'+name,required=True)

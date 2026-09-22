@@ -63,6 +63,7 @@ class Engine:
         self.delivery_failed = False
         self.public_commands=None
         self.queue_budget=None
+        self.battle_delivery_capture=None
         store.snapshot(account_uid)
         if hub is not None:
             hub.attach(self)
@@ -149,6 +150,10 @@ class Engine:
             if self.queue_budget:self.queue_budget.release(self)
 
     def enqueue(self, message):
+        if self.battle_delivery_capture is not None:
+            self.require(message.id==8071 and len(message.payload)<=334,'battle capture envelope')
+            self.require(len(self.battle_delivery_capture)<32,'battle capture budget')
+            self.battle_delivery_capture.append(message);return
         if self.delivery_failed:
             return
         cap=self.public_commands.policy.per_client_outgoing if self.public_commands else 2*1024*1024
@@ -168,6 +173,8 @@ class Engine:
     def take_pending(self, c):
         if c is not self.game:
             return []
+        if self.battle_delivery_capture is not None:
+            out=list(self.battle_delivery_capture);self.battle_delivery_capture.clear();return out
         out=list(self.pending_messages)
         self.pending_messages.clear()
         self.pending_bytes=0
@@ -250,6 +257,8 @@ class Engine:
             error=-3 if self.hub and self.room.stage!='room' else -2
             return [Message(3092,struct.pack('<Qi',c.uid,error))]
         if self.hub is not None:
+            if self.public_commands and ident==8071:
+                return self.hub._battle.dispatch_public(self,c,message)
             result=self.hub.handle(self,c,message)
             if result is not None:
                 return result

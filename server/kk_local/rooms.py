@@ -4,6 +4,7 @@ Each explicitly configured offline account owns an Engine and endpoint set.
 The hub owns rooms, readiness barriers and recipient selection, never client HP.
 """
 from dataclasses import dataclass, field
+from collections import OrderedDict
 import struct
 
 from . import packets
@@ -66,6 +67,7 @@ class SharedRoom:
     pve: object | None = None
     tutorial_pending: bool = False
     public_deadline: float = 0
+    battle_dispatch_cache: OrderedDict = field(default_factory=OrderedDict)
 
     @property
     def fighters(self):

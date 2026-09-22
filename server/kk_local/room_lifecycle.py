@@ -145,6 +145,7 @@ class RoomLifecycle:
         uid=engine.account_uid
         hub.suspended.pop(uid,None)
         departed=room.members.pop(uid,None)
+        room.battle_dispatch_cache.clear()
         room.pickup_requests.pop(uid,None)
         room.chest_requests.pop(uid,None)
         room.pending_hit_receipts.pop(uid,None)

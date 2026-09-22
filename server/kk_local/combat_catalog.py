@@ -53,6 +53,21 @@ class CombatCatalog:
         config=ClientConfig(Path(root)/'Data/config.spf2')
         return cls.from_xml(config.xml('skillproperty.xml'),source=str(config.path))
 
+    @classmethod
+    def from_file(cls,path):
+        """Explicit server-owned source XML, not client attestation or upload.
+
+        Reuse the same semantic projection as local installations. Do not load
+        DLLs/scripts or synthesize skill definitions when content is missing.
+        """
+        import xml.etree.ElementTree as ET
+        source=Path(path)
+        if not 1<=source.stat().st_size<=16*1024*1024:raise ValueError('skill XML size')
+        raw=source.read_bytes()
+        if b'\0' in raw or b'<!DOCTYPE' in raw.upper() or b'<!ENTITY' in raw.upper():raise ValueError('skill XML declarations forbidden')
+        root=ET.fromstring(raw)
+        return cls.from_xml(root,source=str(source))
+
     def permits_effect_free_receipt(self,skill_id):
         return skill_id in self.safe_receipt_ids and skill_id not in self.conflicts
 

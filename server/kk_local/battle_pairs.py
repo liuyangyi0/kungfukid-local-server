@@ -31,6 +31,7 @@ class BattlePairs:
     def observe_pair_selection(self,engine,decoded,*,recipients=None):
         """Record only a qualified selection; never deliver a second message."""
         hub = self.hub
+        if engine.battle_delivery_capture is not None:return
         from .engine import Phase
         room=engine.room;uid=engine.account_uid
         if (room is None or room.stage!='battle' or engine.game is None or

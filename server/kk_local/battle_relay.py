@@ -1,11 +1,63 @@
 """BattleRelay: local service policy; RoomHub remains the only room state owner."""
 from .wire import Message
 from .layouts import decode_battle
+from .wire import ProtocolError
 
 
 class BattleRelay:
     def __init__(self, hub):
         self.hub = hub
+
+    def dispatch_public(self,engine,c,message,*,recipients=None,udp=False):
+        """One semantic execution across TCP/UDP, with per-recipient delivery.
+
+        Native peer sends can repeat one event separately for each recipient.
+        A shared sequence watermark alone would drop the second recipient; a
+        payload-only relay would execute8126/8150 twice after TCP fallback.
+        Cache bounded decisions, not raw network credentials. No awaits and no
+        temporary copy of gameplay state: the existing handlers own semantics.
+        """
+        room=engine.room;uid=c.uid
+        engine.require(room is not None and room.stage=='battle' and c is engine.game and
+                       c.phase.value=='battle' and uid in room.fighters and room.members[uid].engine is engine,
+                       'public battle dispatch context')
+        payload=bytes(message.payload);key=(uid,payload)
+        cache=room.battle_dispatch_cache
+        entry=cache.get(key)
+        decoded=decode_battle(payload)
+        if entry is not None:
+            lane=15 if decoded['id']==8120 else 19
+            if decoded[f'sequence_{lane}_raw']<room.last_sequence.get((uid,lane),-1):return {} if udp else []
+            if decoded['id']==8150:
+                current=room.active_states.get((decoded['target'],decoded['ustate_code']))
+                if (decoded['operation']=='apply' and current!=(decoded['source'],decoded['parameter_signed'],decoded['event_raw'])) or (decoded['operation']=='cancel' and current is not None):return {} if udp else []
+            if decoded['id'] in (8400,8401,8402,8403) and not room.projectiles.get(decoded['child_key'],{}).get('alive'):return {} if udp else []
+        members={u:m.engine for u,m in room.members.items()}
+        targets=set(members) if recipients is None else set(recipients)
+        engine.require(targets<=set(room.fighters),'battle recipient outside current fighters')
+        if entry is None:
+            engine.require(all(e.battle_delivery_capture is None for e in members.values()),'reentrant battle capture')
+            for e in members.values():e.battle_delivery_capture=[]
+            try:
+                returned=self.handle(engine,c,message)
+                outputs={u:list(e.battle_delivery_capture) for u,e in members.items()}
+                outputs[uid].extend(returned or [])
+            finally:
+                for e in members.values():e.battle_delivery_capture=None
+            outputs={u:tuple(rows) for u,rows in outputs.items() if rows}
+            entry=(outputs,set())
+            if outputs:cache[key]=entry
+            # At most128 fixed<=334-byte input events and bounded outputs/room.
+            while len(cache)>128:cache.popitem(last=False)
+        outputs,delivered=entry
+        result={u:rows for u,rows in outputs.items() if u in targets and u not in delivered}
+        delivered.update(result)
+        if decoded and decoded['id']==8143 and (decoded['target']==0 or decoded['target'] in result):
+            self.hub.observe_pair_selection(engine,decoded,recipients=set(result))
+        if udp:return result
+        for target,rows in result.items():
+            for row in rows:members[target].enqueue(row)
+        return engine.take_pending(c)
 
     def handle_reborn_sync(self,engine,c,decoded,payload):
         """Mode16 Host observations; no extra server points or native respawn."""
@@ -67,7 +119,7 @@ class BattleRelay:
         # SYSTEM_DESIGN_INFERRED / PROVISIONAL: owned-player messages may
         # update that player's replicated controls; owned HP reports and
         # previously admitted Host cancellations have separate checks below.
-        if decoded is None or decoded['id'] not in (8120,8121,8122,8125,8127,8140,8143,8150,8280,8284,8287,8293,8400,8401,8402,8403,8404):
+        if decoded is None or decoded['id'] not in (8120,8121,8122,8125,8127,8140,8143,8150,8280,8284,8287,8288,8293,8400,8401,8402,8403,8404):
             engine.record_unknown(c,ident,p)
             return []
         require(c is engine.game and uid in room.members and
@@ -79,6 +131,8 @@ class BattleRelay:
                      uid==room.owner and decoded['target'] in room.members)
         actor=(decoded['target'] if decoded['id']==8121 else
                decoded.get('attacker',decoded.get('player',uid)))
+        if decoded['id']==8288 and not actor:
+            engine.record_unknown(c,ident,p);return []
         if decoded['id'] in (8284,8293) and actor not in room.fighters:
             #The native ownership query has a virtual-slot/Host extension.
             #Untracked special actors are unsupported, not proven forgery.

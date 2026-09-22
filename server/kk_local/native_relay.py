@@ -7,7 +7,7 @@ import secrets
 import socket
 import struct
 from .auth import AuthError
-from .wire import ProtocolError,sdp_header,sdp_reply
+from .wire import ProtocolError,sdp_header,sdp_reply,encode_game
 from .sdp_peer import SdpPeerRouter
 
 
@@ -83,6 +83,16 @@ class NativeRelay:
                 raise AuthError('SDP target outside room or lease')
             if self.admission.public_policy and not other.p2p.get('confirmed'):raise AuthError('SDP target reachability unconfirmed')
             targets.append(found)
+        if self.admission.public_policy:
+            for message in checked_messages:
+                deliveries=e.hub._battle.dispatch_public(e,e.game,message,recipients={t.uid for t in targets},udp=True)
+                for target in targets:
+                    for row in deliveries.get(target.uid,()):
+                        packet=bytearray(data[:24]);struct.pack_into('<H',packet,2,1009)
+                        struct.pack_into('<I',packet,4,target.engine.p2p['session'])
+                        struct.pack_into('<I',packet,16,target.engine.p2p['player']);packet[23]=0
+                        self.emit(bytes(packet)+encode_game(row),target.udp_peer)
+            return
         for target in targets:
             packet=bytearray(data[:24]);struct.pack_into('<H',packet,2,1009)
             struct.pack_into('<I',packet,4,target.engine.p2p['session'])

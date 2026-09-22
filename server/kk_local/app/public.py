@@ -27,6 +27,8 @@ class PublicRuntime:
         certificate=x509.load_pem_x509_certificate(Path(a.auth_certificate).read_bytes())
         if not certificate.not_valid_before_utc<=datetime.now(timezone.utc)<certificate.not_valid_after_utc:raise ValueError('TLS certificate outside validity period')
         check_database(a.database)
+        from ..combat_catalog import CombatCatalog
+        combat=CombatCatalog.from_file(a.combat_skill_xml) if getattr(a,'combat_skill_xml',None) else None
         self.stack=contextlib.AsyncExitStack()
         try:
             self.stack.enter_context(DatabaseLease(a.database))
@@ -37,6 +39,7 @@ class PublicRuntime:
             self.auth=PublicAuthManager(self.store,[dict(id=1,name='Public non-ranked',host='127.0.0.1',game_port=a.game_port or 18001)],policy=a.public_policy)
             self.stack.callback(self.auth.close)
             self.admission=NativeAdmission(self.auth,host=a.advertised_host,game_port=a.game_port,udp_port=a.udp_port,sdk_port=a.sdk_port,limit=a.public_policy.online,public_policy=a.public_policy)
+            self.admission.hub.combat_catalog=combat
             self.game=NativeService(self.admission,host=a.listen_host,game_port=a.game_port,udp_port=a.udp_port,sdk_port=a.sdk_port,public_policy=a.public_policy,
                                     metrics=self.metrics,event_sink=self.metrics.event,datagram_policy=DatagramPolicy(bound_limit=a.public_policy.online))
             self.api=PublicAuthAPI(self.admission,host=a.listen_host,port=a.auth_port,context=context,policy=a.public_policy,event_sink=self.metrics.event)

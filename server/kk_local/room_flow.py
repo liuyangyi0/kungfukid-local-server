@@ -73,7 +73,7 @@ class RoomFlow:
                       room.pair_selection_versions,room.projectiles,room.pickup_requests,room.chest_requests,
                       room.pending_hit_receipts,room.pending_death_receipts,room.spawned_collectibles,
                       room.result_reports,room.result_requests,room.result_replies,room.result_acks,
-                      room.loaded,room.input_ready,room.talisman_pending,room.talisman_sequences):state.clear()
+                      room.loaded,room.input_ready,room.talisman_pending,room.talisman_sequences,room.battle_dispatch_cache):state.clear()
         room.stage='loading'
         if hub.public_policy:room.public_deadline=owner.clock()+120
         values={m.slot:m.network_delay_ms for m in room.fighters.values()}
@@ -106,6 +106,7 @@ class RoomFlow:
         if room.stage=='result' and room.result_acks==set(room.members):
             room.stage='room'
             room.public_deadline=0
+            room.battle_dispatch_cache.clear()
             room.pve=None
             room.loaded.clear();room.input_ready.clear();room.last_sequence.clear();room.motion_payloads.clear()
             room.talisman_pending.clear();room.talisman_sequences.clear()

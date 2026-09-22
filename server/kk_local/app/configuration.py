@@ -5,7 +5,7 @@ from pathlib import Path
 
 MODES=('offline','lab','auth','sdo','native','public')
 PATH_OPTIONS=frozenset(('database','client_root','map_client_root','role_ready_file','runtime',
-                        'events','log','report','grant_plan','experimental_multi_account_config','config','auth_certificate','auth_key','security_policy'))
+                        'events','log','report','grant_plan','experimental_multi_account_config','config','auth_certificate','auth_key','security_policy','combat_skill_xml'))
 
 
 def _unique_object(pairs):
@@ -79,6 +79,7 @@ def validate_options(mode,args):
             if not getattr(args,field):raise ValueError('public security inputs required')
             if str(Path(getattr(args,field)).resolve()).casefold() in outputs:raise ValueError('public output overlaps security input')
         args.public_policy=PublicPolicy.load(args.security_policy)
+        if getattr(args,'combat_skill_xml',None) and str(Path(args.combat_skill_xml).resolve()).casefold() in outputs:raise ValueError('public output overlaps combat data')
     elif mode=='native':
         if not args.enable_native_adapter_testing:raise ValueError('native adapter testing must be explicit')
         if args.advertised_host!='127.0.0.1':raise ValueError('public native admission is not yet qualified')

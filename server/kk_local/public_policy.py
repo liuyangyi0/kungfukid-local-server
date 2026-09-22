@@ -74,7 +74,8 @@ class PublicPolicy:
                     max_online=self.online,max_room_players=8,max_rooms=self.rooms,
                     modes=[0,1,2,3,5],authority='validated-relay-not-authoritative-combat',
                     transaction_retry='new-native-frame-is-new-intent',
-                    features=dict(commerce='explicit-server-offers-only',quests=False,pve=False,spectating=False,battle_submessages=sorted(BASIC_BATTLE)),
+                    features=dict(commerce='explicit-server-offers-only',quests=False,pve=False,spectating=False,
+                                  battle_submessages=sorted(BASIC_BATTLE),battle_delivery='shared-conditional-tcp-udp-v1'),
                     limits=dict(tcp_per_account=self.connections_per_uid,udp_packets_per_second=200,
                                 queued_bytes_per_account=self.per_client_outgoing,hash_wait_seconds=self.hash_wait_seconds))
 

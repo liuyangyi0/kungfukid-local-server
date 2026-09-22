@@ -19,7 +19,7 @@ SPECS={
     3500:(39,39,'room'),3501:(18,18,'lobby'),3502:(37,37,'lobby'),4200:(4,4,'battle'),
     4030:(0,0,'room'),4060:(0,0,'room'),4160:(0,0,'loading wait_ready'),8040:(14,14,'wait_ready battle'),
     4151:(0,0,'room'),3550:(12,12,'room battle'),4110:(0,8192,'room battle'),4115:(4,4,'room battle'),
-    8071:(39,334,'battle'),2080:(16,16,'lobby room'),2300:(4,4,'lobby room'),2110:(0,0,'lobby room'),
+    8071:(39,334,'battle'),4082:(0,0,'battle'),2080:(16,16,'lobby room'),2300:(4,4,'lobby room'),2110:(0,0,'lobby room'),
     9070:(2,2,'lobby room'),1540:(0,0,'lobby room'),1500:(0,256,'lobby room'),
     9040:(169,169,'lobby room'),9041:(169,169,'lobby room'),9090:(0,1024,'lobby room'),9091:(0,1024,'lobby room'),
     1300:(0,1024,'lobby room'),1320:(0,1024,'lobby room'),1340:(0,1024,'lobby room'),2171:(0,1024,'lobby room'),
@@ -27,11 +27,13 @@ SPECS={
     4202:(0,1024,'lobby room'),4204:(0,1024,'lobby room'),21410:(0,1024,'lobby room'),21412:(0,1024,'lobby room'),
     9006:(0,128,'lobby'),5002:(215,215,'lobby room battle'),5000:(256,256,'lobby room battle'),
     2420:(8,8,'lobby room'),20360:(12,12,'lobby room'),20546:(0,0,'lobby room')}
-# Stateful effect/projectile/Host-authority families require their separate
-# validation witnesses and are not part of the initial public UDP exposure.
-BASIC_BATTLE=frozenset((8120,8121,8122,8125,8127,8143,8280,8284,8287,8293))
+# Exposure is only the first gate. Shared RoomHub handlers enforce correlated
+# hit receipts, owned states, paired transforms, projectile and Host lifetimes.
+BASIC_BATTLE=frozenset((8120,8121,8122,8125,8126,8127,8140,8143,8144,8150,8270,8278,
+                        8280,8284,8286,8287,8288,8293,8400,8401,8402,8403,8404,
+                        9000,9001,9002,9500,9501,9502))
 DATABASE_COMMANDS=frozenset((1010,2010,2250,2260,3010,3070,3200,3230,3140,4030,4060,4160,8040,4110,
-    2080,2110,2300,9070,1540,1500,9040,9090,1300,1320,1340,2171,1400,1420,1440,4202,4204,21410,21412,9006,2420,20360,20546,4200))
+    2080,2110,2300,9070,1540,1500,9040,9090,1300,1320,1340,2171,1400,1420,1440,4202,4204,21410,21412,9006,2420,20360,20546,4200,4082))
 
 def validate_header(ident,size):
     low,high,_=SPECS.get(ident,(0,1024,''))
@@ -41,9 +43,14 @@ def validate_battle(engine,payload):
     room=engine.room;uid=engine.account_uid;decoded=decode_battle(payload)
     if room is None or room.stage!='battle' or uid not in room.fighters or decoded is None:raise ProtocolError('public battle context')
     if decoded['id'] not in BASIC_BATTLE:raise ProtocolError('public battle family unavailable')
-    if decoded['sender']!=uid or decoded.get('player',uid)!=uid:raise ProtocolError('public actor spoof')
+    if engine.game is None or engine.game.uid!=uid or room.members[uid].engine is not engine:raise ProtocolError('public battle connection')
+    if decoded['sender']!=uid:raise ProtocolError('public actor spoof')
+    # Family-specific authority is enforced by the SAME RoomHub handlers for
+    # both transports; e.g.8144 target-owned pair,8126 correlated source reply,
+    # Host death/collectibles and registered8150 cancellation are not self-only.
+    if decoded['id'] in (8122,8125,8127,8143,8280,8284,8288,8293) and decoded['player']!=uid:raise ProtocolError('public actor spoof')
     if decoded['id']==8121 and decoded['target']!=uid:raise ProtocolError('public hit target spoof')
-    for key in ('source','target'):
+    for key in (() if decoded['id'] in (8400,8401,8402,8403,8404) else ('source','target')):
         if key in decoded and decoded[key] not in (0,*room.fighters):raise ProtocolError('public battle reference outside room')
     if 'room_pair' in decoded and decoded['room_pair']!=(room.number,room.serial):raise ProtocolError('public stale battle')
     if (decoded['flag'],decoded['header_variant'])!=((0,0) if decoded['id']==8120 else (1,1)):raise ProtocolError('public battle header')
@@ -78,6 +85,7 @@ class PublicCommands:
     def udp(self,e,payload):
         decoder=GameDecoder(header_validator=validate_header);messages=decoder.feed(payload);decoder.eof()
         if not 1<=len(messages)<=8:raise ProtocolError('public UDP frame count')
+        if not self.rate.take(0,len(messages)) or not self.bytes.take(0,len(payload)):raise ProtocolError('public battle work budget')
         for message in messages:
             if message.id!=8071:raise ProtocolError('public UDP direction')
             validate_battle(e,message.payload)

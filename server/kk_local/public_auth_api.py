@@ -45,7 +45,10 @@ class PublicAuthAPI(NativeAuthAPI):
         if not self.general.take(peer):raise AuthError('rate_limited')
         if op=='capabilities':
             if args:raise AuthError('invalid_request')
-            return self.policy.capabilities()
+            result=self.policy.capabilities()
+            result['features']['correlated_hit_receipts']=self.admission.hub.combat_catalog is not None
+            result['features']['attacker_effect_receipts']=False
+            return result
         if op=='register':
             if not {'account','password'}<=set(args) or set(args)-{'account','password','nickname','invite_code'}:raise AuthError('invalid_request')
             from .storage.public_access import invite_digest
