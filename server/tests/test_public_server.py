@@ -66,7 +66,12 @@ class PublicServerTests(unittest.IsolatedAsyncioTestCase):
         self.runtime=await PublicRuntime(self.args).start();self.clients=[]
     async def asyncTearDown(self):
         for c in self.clients:await c.close()
-        await self.runtime.close();self.temp.cleanup()
+        await self.runtime.close()
+        self.assertEqual((self.runtime.game.connections.pending,self.runtime.game.connections.active),(0,0))
+        self.assertEqual((self.runtime.api.connections.pending,self.runtime.api.connections.active),(0,0))
+        self.assertEqual((self.runtime.game.incoming.used,self.runtime.game.outgoing.used),(0,0))
+        self.assertFalse(self.runtime.game.encode_tasks)
+        self.temp.cleanup()
     def client(self,ip=None):
         c=ReferenceClient('127.0.0.1',self.runtime.api.port,context=ssl.create_default_context(cafile=str(self.root/'cert.pem')),local_ip=ip);self.clients.append(c);return c
     def invite(self):
