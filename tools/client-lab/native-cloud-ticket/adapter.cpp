@@ -246,6 +246,7 @@ BOOL WINAPI DllMain(HINSTANCE module,DWORD reason,LPVOID){if(reason==DLL_PROCESS
 #else
 #include <cassert>
 #include <vector>
+#include "socket_queue_contract.hpp"
 static std::vector<char> sent_bytes;
 static int send_step=0;
 static int WSAAPI fake_send(SOCKET,const char* data,int size,int){
@@ -254,7 +255,7 @@ static int WSAAPI fake_send(SOCKET,const char* data,int size,int){
 }
 static int WSAAPI fake_peer(SOCKET,sockaddr* address,int* size){auto p=reinterpret_cast<sockaddr_in*>(address);p->sin_family=AF_INET;p->sin_addr.s_addr=0x0100007f;p->sin_port=htons(18000);*size=sizeof(sockaddr_in);return 0;}
 static int WSAAPI fake_close(SOCKET){return 0;}
-static unsigned int partial_calls=0;
+static std::atomic<unsigned int> partial_calls{0};
 static int WSAAPI fragment_send(SOCKET s,const char* data,int count,int flags){
     if((partial_calls++%3)==1){WSASetLastError(WSAEWOULDBLOCK);return SOCKET_ERROR;}
     return ::send(s,data,(std::min)(count,701),flags);
@@ -284,7 +285,7 @@ int main(int argc,char** argv){
         sockaddr_in peer{};peer.sin_family=AF_INET;peer.sin_addr.s_addr=c.sdk_ipv4;peer.sin_port=htons(c.game_port);
         assert(connect(s,reinterpret_cast<sockaddr*>(&peer),sizeof(peer))==0);
         kknet::raw_send=&fragment_send;
-        u_long nonblocking=1;assert(ioctlsocket(s,FIONBIO,&nonblocking)==0);
+        u_long nonblocking=1;assert(kknet::ioctls_hook(s,FIONBIO,&nonblocking)==0);
         std::vector<char> input(100000);for(size_t i=0;i<input.size();i++)input[i]=static_cast<char>(i%251);
         size_t sent=0,received=0;ULONGLONG end=GetTickCount64()+10000;
         while(sent<input.size()){
@@ -295,7 +296,8 @@ int main(int argc,char** argv){
         unsigned int buffered_events=0;
         while(received<input.size()){
             assert(GetTickCount64()<end);fd_set ready;FD_ZERO(&ready);FD_SET(s,&ready);timeval wait{0,10000};int selected=kknet::select_hook(0,&ready,nullptr,nullptr,&wait);assert(selected>=0);if(!selected)continue;
-            char data[17];int n=kknet::recv_hook(s,data,sizeof(data),0);
+            char data[17];WSABUF receive[2]={{5,data},{12,data+5}};DWORD got=0,flags=0;
+            int call=kknet::recv_buffers(s,receive,2,&got,&flags,nullptr,nullptr);int n=call==SOCKET_ERROR?SOCKET_ERROR:static_cast<int>(got);
             if(n==SOCKET_ERROR){assert(WSAGetLastError()==WSAEWOULDBLOCK);continue;}
             assert(n>0&&received+static_cast<size_t>(n)<=input.size());assert(!std::memcmp(data,input.data()+received,n));received+=n;
             auto existing=kknet::state(s,false);assert(existing);
@@ -316,6 +318,7 @@ int main(int argc,char** argv){
         WSACleanup();puts("PASS: CNG/Python real encrypted TCP and UDP;100000-byte stream;17-byte reads; buffered select; foreign endpoint refused.");return 0;
     }
     assert(KkNativeCloudSetTicket(&c)==0);
+    queue_contract();
     static_assert(sizeof(TicketConfig)==224,"C# handoff wire size");
     unsigned char cid[16]{};cid[0]=7;
     kkrecord::Records a,b;assert(a.init(c.transport_key,c.transport_id,cid,2,false));assert(b.init(c.transport_key,c.transport_id,cid,2,true));
