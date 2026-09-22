@@ -66,34 +66,19 @@ if($Action -eq 'Plan'){
  return
 }
 Assert-Guest
-if($Action -eq 'Check'){Assert-Policy $plan;Write-Output 'KK_NATIVE_EGRESS_READY';return}
-Assert-Admin;Assert-Idle
 $receiptPath=[IO.Path]::GetFullPath($Receipt)
-if(-not $receiptPath.StartsWith('C:\KK-Lab\',[StringComparison]::OrdinalIgnoreCase)){throw 'Receipt must remain inside guest lab'}
-if($Action -eq 'Apply'){
- if(Test-Path -LiteralPath $receiptPath){throw 'Existing policy receipt: Check or Restore it; do not overwrite'}
- foreach($row in $plan){if(-not(Test-Path -LiteralPath $row.program -PathType Leaf)){throw 'Allowlisted executable missing'}}
- if(Get-NetFirewallRule -Group $group -ErrorAction SilentlyContinue){throw 'Unexpected existing native policy'}
- $allowed=@(Get-NetFirewallRule -PolicyStore PersistentStore -Direction Outbound -Enabled True -Action Allow)
- $before=@(Get-NetFirewallProfile -PolicyStore PersistentStore | Select-Object Name,Enabled,DefaultOutboundAction)
- # Save rollback data before any mutation; interruption leaves a recoverable,
- # fail-closed policy. Never auto-open networking after an error.
- [IO.File]::WriteAllText($receiptPath,([pscustomobject]@{schema='kk-native-egress-receipt-v1';computer=$env:COMPUTERNAME;profiles=$before;disabled=@($allowed.Name);rules=$plan}|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
- Set-NetFirewallProfile -Profile Domain,Private,Public -Enabled True -DefaultOutboundAction Block
- foreach($rule in $allowed){Disable-NetFirewallRule -PolicyStore PersistentStore -Name $rule.Name | Out-Null}
- foreach($row in $plan){New-NetFirewallRule -PolicyStore PersistentStore -Name $row.name -DisplayName $row.name -Group $group -Profile Any -Direction Outbound -Action Allow -Enabled True -Program $row.program -Protocol $row.protocol -RemoteAddress $row.address -RemotePort $row.port | Out-Null}
- Assert-Policy $plan
- Write-Output 'KK_NATIVE_EGRESS_READY'
- return
+if(-not $receiptPath.StartsWith('C:\\KK-Lab\\',[StringComparison]::OrdinalIgnoreCase)){throw 'Receipt must remain inside guest lab'}
+for($directory=[IO.DirectoryInfo]::new([IO.Path]::GetDirectoryName($receiptPath));$null -ne $directory;$directory=$directory.Parent){
+ if($directory.Exists -and ($directory.Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'Linked journal directory refused'}
 }
-$saved=Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
-if($saved.schema -ne 'kk-native-egress-receipt-v1' -or $saved.computer -ne $env:COMPUTERNAME){throw 'Foreign policy receipt refused'}
-foreach($row in $saved.rules){
- if($row.name -notin @('KKNative-Auth','KKNative-SDK','KKNative-Game','KKNative-Relay')){throw 'Invalid rollback rule'}
- Remove-NetFirewallRule -PolicyStore PersistentStore -Name $row.name -ErrorAction SilentlyContinue
-}
-foreach($name in $saved.disabled){Enable-NetFirewallRule -PolicyStore PersistentStore -Name $name | Out-Null}
-foreach($profile in $saved.profiles){Set-NetFirewallProfile -Profile $profile.Name -Enabled $profile.Enabled -DefaultOutboundAction $profile.DefaultOutboundAction}
-# Keep the rollback receipt as an audit artifact, move only the exact named file.
-Move-Item -LiteralPath $receiptPath -Destination ($receiptPath+'.restored-'+[DateTime]::UtcNow.ToString('yyyyMMddHHmmss'))
-Write-Output 'KK_NATIVE_EGRESS_RESTORED'
+if(Test-Path -LiteralPath $receiptPath){if((Get-Item -LiteralPath $receiptPath).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Linked receipt refused'}}
+if($Action -ne 'Check'){Assert-Admin;Assert-Idle}
+. (Join-Path $PSScriptRoot 'KkNativeEgressTransaction.ps1')
+. (Join-Path $PSScriptRoot 'KkNativeEgressWindows.ps1')
+$mutex=[Threading.Mutex]::new($false,'Global\KKNativeEgressPolicyV2')
+$held=$false
+try{
+ try{$held=$mutex.WaitOne(15000)}catch [Threading.AbandonedMutexException]{$held=$true}
+ if(-not $held){throw 'Another policy transaction is active'}
+ Invoke-KkEgressTransaction -Action $Action -Plan $plan -Machine $env:COMPUTERNAME -Backend {param($op,$arg) Invoke-KkWindowsBackend $op $arg}
+}finally{if($held){$mutex.ReleaseMutex()};$mutex.Dispose()}
