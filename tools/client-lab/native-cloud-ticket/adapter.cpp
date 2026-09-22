@@ -72,6 +72,7 @@ static bool snapshot(TicketConfig& result){
     ReleaseSRWLockShared(&state_lock);return ready;
 }
 static bool exchange_slot(void** slot,void* expected,void* replacement);
+#include "hook_transaction.hpp"
 #include "socket_transport.hpp"
 static int WSAAPI sdk_send_hook(SOCKET socket,const char* data,int length,int flags){
     CallScope scope;TicketConfig c{};ULONGLONG epoch=0;
@@ -164,6 +165,7 @@ static bool exchange_slot(void** slot,void* expected,void* replacement){
     return prior==expected&&protected_ok;
 }
 extern "C" __declspec(dllexport) DWORD WINAPI KkNativeCloudSetTicket(const TicketConfig* input){
+    if(kkhooks::phase==kkhooks::Failed||kkhooks::phase==kkhooks::Retired)return ERROR_INVALID_STATE;
     TicketConfig copy{};SIZE_T got=0;
     if(!input||!ReadProcessMemory(GetCurrentProcess(),input,&copy,sizeof(copy),&got)||got!=sizeof(copy)||!valid(copy)){SecureZeroMemory(&copy,sizeof(copy));return ERROR_INVALID_DATA;}
     AcquireSRWLockExclusive(&state_lock);
@@ -175,69 +177,122 @@ extern "C" __declspec(dllexport) DWORD WINAPI KkNativeCloudSetTicket(const Ticke
 extern "C" __declspec(dllexport) DWORD WINAPI KkNativeCloudClearTicket(void*){
     AcquireSRWLockExclusive(&state_lock);SecureZeroMemory(&ticket,sizeof(ticket));deadline=0;ReleaseSRWLockExclusive(&state_lock);return ERROR_SUCCESS;
 }
+extern "C" __declspec(dllexport) DWORD WINAPI KkNativeCloudInstall(void*);
+using RegisterNotification=LONG (NTAPI*)(ULONG,void (NTAPI*)(ULONG,const void*,void*),void*,void**);
+using UnregisterNotification=LONG (NTAPI*)(void*);
+static HANDLE coverage_event=nullptr,coverage_thread=nullptr;
+static void* notification_cookie=nullptr;
+static std::atomic<bool> coverage_stop{false};
+static std::mutex remove_lock;
+static void NTAPI module_notice(ULONG reason,const void*,void*){
+    if(reason!=1&&reason!=2)return;
+    ++kkhooks::epoch;kknet::traffic_enabled=false;
+    if(coverage_event)SetEvent(coverage_event); // no allocation, scanning or IAT write under loader lock
+}
+static DWORD WINAPI coverage_worker(void*){
+    while(WaitForSingleObject(coverage_event,INFINITE)==WAIT_OBJECT_0){
+        if(coverage_stop)return 0;
+        if(kkhooks::phase!=kkhooks::Failed&&kkhooks::phase!=kkhooks::Retired)KkNativeCloudInstall(nullptr);
+    }return 0;
+}
+static bool start_notifications(){
+    if(notification_cookie)return true;
+    auto ntdll=GetModuleHandleW(L"ntdll.dll");if(!ntdll)return false;
+    auto reg=reinterpret_cast<RegisterNotification>(GetProcAddress(ntdll,"LdrRegisterDllNotification"));if(!reg)return false;
+    coverage_event=CreateEventW(nullptr,FALSE,FALSE,nullptr);if(!coverage_event)return false;
+    if(reg(0,&module_notice,nullptr,&notification_cookie)<0){CloseHandle(coverage_event);coverage_event=nullptr;return false;}
+    coverage_thread=CreateThread(nullptr,0,&coverage_worker,nullptr,0,nullptr);
+    if(!coverage_thread){
+        auto unreg=reinterpret_cast<UnregisterNotification>(GetProcAddress(ntdll,"LdrUnregisterDllNotification"));
+        if(unreg)unreg(notification_cookie);notification_cookie=nullptr;CloseHandle(coverage_event);coverage_event=nullptr;return false;
+    }return true;
+}
+static DWORD install_failure(DWORD code){
+    kkhooks::phase=kkhooks::Failed;kkhooks::last_error=code;kknet::traffic_enabled=false;
+    KkNativeCloudClearTicket(nullptr);return code;
+}
 extern "C" __declspec(dllexport) DWORD WINAPI KkNativeCloudInstall(void*){
-    if(InterlockedCompareExchange(&active_calls,0,0))return ERROR_BUSY;
-    static const unsigned char login_hash[32]={0xe1,0x8e,0xe6,0x49,0xb6,0xfd,0x57,0x13,0x45,0xff,0x04,0xf9,0x7c,0xb0,0x80,0x26,0x33,0x56,0xdf,0x2c,0x6e,0x5d,0x58,0x61,0x69,0x56,0x50,0xf2,0xa3,0x52,0x1b,0x4a};
-    static const unsigned char p2p_hash[32]={0xff,0x9f,0xcd,0xe2,0x20,0x01,0x11,0x09,0x8c,0x87,0x91,0xe8,0x94,0x4f,0x74,0x04,0xed,0x07,0x06,0x8a,0x70,0x3a,0xec,0x8c,0xe6,0xa2,0x4a,0x65,0xd7,0xaf,0x30,0xd0};
+    std::lock_guard<std::mutex> lock(kkhooks::lifecycle);
+    if(kkhooks::phase==kkhooks::Retired||kkhooks::phase==kkhooks::Failed)return ERROR_INVALID_STATE;
     HMODULE login=GetModuleHandleW(L"SDLogin.dll"),p2p=GetModuleHandleW(L"SDP2P.dll");
-    if(!login)return ERROR_MOD_NOT_FOUND;
-    HMODULE pinned=nullptr;
-    if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,reinterpret_cast<LPCWSTR>(&credential_hook),&pinned))return GetLastError();
-    if(!credential_slot&&!send_slot&&!close_slot){
-        if(!module_hash(login,login_hash))return ERROR_REVISION_MISMATCH;
-        HMODULE winsock=GetModuleHandleW(L"WS2_32.dll");if(!winsock)return ERROR_MOD_NOT_FOUND;
-        auto sf=reinterpret_cast<SendFn>(GetProcAddress(winsock,"send"));
-        auto cf=reinterpret_cast<CloseFn>(GetProcAddress(winsock,"closesocket"));
+    if(!login){kkhooks::last_error=ERROR_MOD_NOT_FOUND;return ERROR_MOD_NOT_FOUND;}
+    kkhooks::phase=kkhooks::Preparing;kknet::traffic_enabled=false;kknet::coverage_gate=&kkhooks::ready;
+    kkhooks::unsupported=0;kkhooks::rollback_error=0;
+    try{
+        static const unsigned char login_hash[32]={0xe1,0x8e,0xe6,0x49,0xb6,0xfd,0x57,0x13,0x45,0xff,0x04,0xf9,0x7c,0xb0,0x80,0x26,0x33,0x56,0xdf,0x2c,0x6e,0x5d,0x58,0x61,0x69,0x56,0x50,0xf2,0xa3,0x52,0x1b,0x4a};
+        static const unsigned char p2p_hash[32]={0xff,0x9f,0xcd,0xe2,0x20,0x01,0x11,0x09,0x8c,0x87,0x91,0xe8,0x94,0x4f,0x74,0x04,0xed,0x07,0x06,0x8a,0x70,0x3a,0xec,0x8c,0xe6,0xa2,0x4a,0x65,0xd7,0xaf,0x30,0xd0};
+        HMODULE pinned=nullptr;
+        if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,reinterpret_cast<LPCWSTR>(&credential_hook),&pinned))return install_failure(GetLastError());
+        if(!credential_slot&&!module_hash(login,login_hash))return install_failure(ERROR_REVISION_MISMATCH);
+        if(p2p&&!p2p_slot&&!module_hash(p2p,p2p_hash))return install_failure(ERROR_REVISION_MISMATCH);
+        if(!start_notifications())return install_failure(ERROR_NOT_SUPPORTED);
+        DWORD epoch=kkhooks::epoch;
+        auto winsock=GetModuleHandleW(L"WS2_32.dll");if(!winsock)return install_failure(ERROR_MOD_NOT_FOUND);
+        auto sf=reinterpret_cast<void*>(GetProcAddress(winsock,"send"));
+        auto cf=reinterpret_cast<void*>(GetProcAddress(winsock,"closesocket"));if(!sf||!cf)return install_failure(ERROR_PROC_NOT_FOUND);
         auto lf=reinterpret_cast<CredentialFn>(reinterpret_cast<unsigned char*>(login)+0x2CE0);
-        if(!sf||!cf)return ERROR_PROC_NOT_FOUND;
         auto ls=reinterpret_cast<void**>(reinterpret_cast<unsigned char*>(login)+0x263F0+0x24);
         auto ss=reinterpret_cast<void**>(reinterpret_cast<unsigned char*>(login)+0x261A0);
         auto cs=reinterpret_cast<void**>(reinterpret_cast<unsigned char*>(login)+0x26194);
-        if(*ls!=reinterpret_cast<void*>(lf)||*ss!=reinterpret_cast<void*>(sf)||*cs!=reinterpret_cast<void*>(cf))return ERROR_REVISION_MISMATCH;
-        if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,reinterpret_cast<LPCWSTR>(login),&pinned))return GetLastError();
-        original_credential=lf;original_send=&kknet::send_hook;original_close=&kknet::close_hook;
-        void** slots[3]={ls,cs,ss};
-        void* originals[3]={reinterpret_cast<void*>(lf),reinterpret_cast<void*>(cf),reinterpret_cast<void*>(sf)};
-        void* replacements[3]={reinterpret_cast<void*>(credential_hook),reinterpret_cast<void*>(sdk_close_hook),reinterpret_cast<void*>(sdk_send_hook)};
-        int installed=0;
-        for(;installed<3;installed++)if(!exchange_slot(slots[installed],originals[installed],replacements[installed]))break;
-        if(installed!=3){
-            for(int i=installed-1;i>=0;i--)exchange_slot(slots[i],replacements[i],originals[i]);
-            credential_slot=*ls==replacements[0]?ls:nullptr;
-            close_slot=*cs==replacements[1]?cs:nullptr;send_slot=*ss==replacements[2]?ss:nullptr;
-            return ERROR_WRITE_FAULT;
+        std::vector<kkhooks::Patch> plan;
+        if(!kkhooks::add(plan,ls,reinterpret_cast<void*>(lf),reinterpret_cast<void*>(&credential_hook))||
+           !kkhooks::add(plan,ss,sf,reinterpret_cast<void*>(&sdk_send_hook))||
+           !kkhooks::add(plan,cs,cf,reinterpret_cast<void*>(&sdk_close_hook)))return install_failure(ERROR_REVISION_MISMATCH);
+        void** ps=nullptr;P2PLoginFn pf=nullptr;
+        if(p2p){
+            ps=reinterpret_cast<void**>(reinterpret_cast<unsigned char*>(p2p)+0x2AE40+6*sizeof(void*));pf=reinterpret_cast<P2PLoginFn>(reinterpret_cast<unsigned char*>(p2p)+0x6AD0);
+            if(!kkhooks::add(plan,ps,reinterpret_cast<void*>(pf),reinterpret_cast<void*>(&p2p_hook)))return install_failure(ERROR_REVISION_MISMATCH);
         }
-        credential_slot=ls;close_slot=cs;send_slot=ss;
-    }else if(!credential_slot||!send_slot||!close_slot||
-              *credential_slot!=reinterpret_cast<void*>(credential_hook)||
-              *send_slot!=reinterpret_cast<void*>(sdk_send_hook)||
-              *close_slot!=reinterpret_cast<void*>(sdk_close_hook))return ERROR_INVALID_STATE;
-    // SDK can initialize before SDP is loaded. The launcher requires mask13
-    // before SDK login, then mask15 before releasing the role/profile gate.
-    if(p2p&&!p2p_slot){
-        if(!module_hash(p2p,p2p_hash))return ERROR_REVISION_MISMATCH;
-        auto ps=reinterpret_cast<void**>(reinterpret_cast<unsigned char*>(p2p)+0x2AE40+6*sizeof(void*));
-        auto pf=reinterpret_cast<P2PLoginFn>(reinterpret_cast<unsigned char*>(p2p)+0x6AD0);
-        if(*ps!=reinterpret_cast<void*>(pf))return ERROR_REVISION_MISMATCH;
-        if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,reinterpret_cast<LPCWSTR>(p2p),&pinned))return GetLastError();
-        original_p2p_login=pf;
-        if(!exchange_slot(ps,reinterpret_cast<void*>(pf),reinterpret_cast<void*>(p2p_hook)))return ERROR_WRITE_FAULT;
-        p2p_slot=ps;
-    }else if(p2p_slot&&*p2p_slot!=reinterpret_cast<void*>(p2p_hook))return ERROR_INVALID_STATE;
-    if(!kknet::install())return ERROR_WRITE_FAULT;
-    return ERROR_SUCCESS;
+        if(!kknet::collect(plan))return install_failure(ERROR_NOT_SUPPORTED);
+        if(epoch!=kkhooks::epoch){SetEvent(coverage_event);return ERROR_BUSY;}
+        // Original targets are published before atomic slot installation so an
+        // in-flight hook always has a valid pinned fallback target.
+        original_credential=lf;original_send=&kknet::send_hook;original_close=&kknet::close_hook;if(pf)original_p2p_login=pf;
+        if(!kkhooks::commit(plan,&exchange_slot))return install_failure(ERROR_WRITE_FAULT);
+        credential_slot=ls;send_slot=ss;close_slot=cs;if(ps)p2p_slot=ps;kknet::installed=true;
+        kkhooks::verified=epoch;kkhooks::last_error=0;kkhooks::phase=kkhooks::Ready;kknet::resume();
+        if(epoch!=kkhooks::epoch){SetEvent(coverage_event);return ERROR_BUSY;}return ERROR_SUCCESS;
+    }catch(...){return install_failure(ERROR_NOT_ENOUGH_MEMORY);}
 }
 extern "C" __declspec(dllexport) DWORD WINAPI KkNativeCloudRemove(void*){
-    KkNativeCloudClearTicket(nullptr);
+    std::lock_guard<std::mutex> serial(remove_lock);
+    // Lifecycle cannot be held while joining the scanner (which may be waiting
+    // for that same lock). The gate closes before either join begins.
+    HANDLE worker=nullptr,event=nullptr;
+    {
+        std::lock_guard<std::mutex> lock(kkhooks::lifecycle);
+        kkhooks::phase=kkhooks::Retired;kknet::traffic_enabled=false;KkNativeCloudClearTicket(nullptr);coverage_stop=true;
+        if(notification_cookie){
+            auto unreg=reinterpret_cast<UnregisterNotification>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"),"LdrUnregisterDllNotification"));
+            if(!unreg||unreg(notification_cookie)<0){kkhooks::last_error=ERROR_BUSY;return ERROR_BUSY;}
+            notification_cookie=nullptr;
+        }
+        worker=coverage_thread;event=coverage_event;if(event)SetEvent(event);
+    }
+    if(worker)WaitForSingleObject(worker,INFINITE);
     kknet::retire();
-    bool ok=true;
-    if(send_slot){ok=exchange_slot(send_slot,reinterpret_cast<void*>(sdk_send_hook),reinterpret_cast<void*>(original_send));if(ok)send_slot=nullptr;}
-    if(close_slot){bool removed=exchange_slot(close_slot,reinterpret_cast<void*>(sdk_close_hook),reinterpret_cast<void*>(original_close));ok=ok&&removed;if(removed)close_slot=nullptr;}
-    if(p2p_slot){bool removed=exchange_slot(p2p_slot,reinterpret_cast<void*>(p2p_hook),reinterpret_cast<void*>(original_p2p_login));ok=ok&&removed;if(removed)p2p_slot=nullptr;}
-    if(credential_slot){bool removed=exchange_slot(credential_slot,reinterpret_cast<void*>(credential_hook),reinterpret_cast<void*>(original_credential));ok=ok&&removed;if(removed)credential_slot=nullptr;}
-    return ok?ERROR_SUCCESS:ERROR_WRITE_FAULT;
+    {
+        std::lock_guard<std::mutex> lock(kkhooks::lifecycle);
+        if(coverage_thread){CloseHandle(coverage_thread);coverage_thread=nullptr;}
+        if(coverage_event){CloseHandle(coverage_event);coverage_event=nullptr;}
+    }
+    // Keep pinned hooks installed as a permanent deny layer. Restoring socket
+    // imports to plaintext on a live retired process would reopen the boundary.
+    return ERROR_SUCCESS;
+}
+#pragma pack(push,1)
+struct AdapterStatusV2 {DWORD size,version,phase,installed,configured,active_calls,coverage_generation,verified_generation,unsupported,last_error,rollback_failed;};
+#pragma pack(pop)
+extern "C" __declspec(dllexport) DWORD WINAPI KkNativeCloudGetStatusV2(AdapterStatusV2* output){
+    AdapterStatusV2 input{};SIZE_T got=0;
+    if(!output||!ReadProcessMemory(GetCurrentProcess(),output,&input,sizeof(input),&got)||got!=sizeof(input)||input.size!=sizeof(input)||input.version!=2)return ERROR_INVALID_PARAMETER;
+    std::lock_guard<std::mutex> lock(kkhooks::lifecycle);TicketConfig c{};
+    AdapterStatusV2 result{sizeof(result),2,kkhooks::phase.load(),(credential_slot?1u:0u)|(p2p_slot?2u:0u)|(send_slot?4u:0u)|(close_slot?8u:0u)|(kknet::installed?16u:0u),snapshot(c)?1u:0u,static_cast<DWORD>(InterlockedCompareExchange(&active_calls,0,0)),kkhooks::epoch.load(),kkhooks::verified.load(),kkhooks::unsupported.load(),kkhooks::last_error.load(),kkhooks::rollback_error.load()};
+    SecureZeroMemory(&c,sizeof(c));SIZE_T written=0;
+    return WriteProcessMemory(GetCurrentProcess(),output,&result,sizeof(result),&written)&&written==sizeof(result)?ERROR_SUCCESS:ERROR_INVALID_PARAMETER;
 }
 extern "C" __declspec(dllexport) DWORD WINAPI KkNativeCloudGetStatus(AdapterStatus* output){
+    std::lock_guard<std::mutex> lock(kkhooks::lifecycle);
     TicketConfig c{};AdapterStatus s{sizeof(AdapterStatus),(credential_slot?1u:0u)|(p2p_slot?2u:0u)|(send_slot?4u:0u)|(close_slot?8u:0u)|(kknet::installed?16u:0u),snapshot(c)?1u:0u,static_cast<DWORD>(InterlockedCompareExchange(&active_calls,0,0))};SecureZeroMemory(&c,sizeof(c));
     SIZE_T written=0;return output&&WriteProcessMemory(GetCurrentProcess(),output,&s,sizeof(s),&written)&&written==sizeof(s)?ERROR_SUCCESS:ERROR_INVALID_PARAMETER;
 }
@@ -247,6 +302,7 @@ BOOL WINAPI DllMain(HINSTANCE module,DWORD reason,LPVOID){if(reason==DLL_PROCESS
 #include <cassert>
 #include <vector>
 #include "socket_queue_contract.hpp"
+#include "hook_transaction_contract.hpp"
 static std::vector<char> sent_bytes;
 static int send_step=0;
 static int WSAAPI fake_send(SOCKET,const char* data,int size,int){
@@ -266,6 +322,12 @@ static unsigned char __fastcall fake_p2p(void* self,void*,const void* parameters
 }
 static int __stdcall fake_credential(void* self,void*,int length){assert(self==reinterpret_cast<void*>(0x1234));return length+1;}
 int main(int argc,char** argv){
+    if(argc==3&&std::strcmp(argv[1],"--notification-model")==0){
+        assert(start_notifications());kkhooks::phase=kkhooks::Ready;kkhooks::verified=kkhooks::epoch.load();assert(kkhooks::ready());
+        HMODULE owned=LoadLibraryA(argv[2]);assert(owned);assert(!kkhooks::ready()&&!kknet::traffic_enabled);
+        assert(FreeLibrary(owned));std::thread one([]{assert(KkNativeCloudRemove(nullptr)==0);});std::thread two([]{assert(KkNativeCloudRemove(nullptr)==0);});one.join();two.join();assert(!coverage_thread&&!coverage_event&&!notification_cookie);
+        assert(KkNativeCloudRemove(nullptr)==0);puts("PASS: owned DLL late-load invalidates coverage; callback scanner runs outside loader; repeated retirement joins watcher.");return 0;
+    }
     if(argc==3&&std::strcmp(argv[1],"--host-adapter")==0){
         HMODULE module=LoadLibraryA(argv[2]);if(!module)return 2;
         wchar_t name[96];swprintf_s(name,L"Local\\KkNativeModel-%lu",GetCurrentProcessId());
@@ -319,6 +381,7 @@ int main(int argc,char** argv){
     }
     assert(KkNativeCloudSetTicket(&c)==0);
     queue_contract();
+    hook_transaction_contract();
     static_assert(sizeof(TicketConfig)==224,"C# handoff wire size");
     unsigned char cid[16]{};cid[0]=7;
     kkrecord::Records a,b;assert(a.init(c.transport_key,c.transport_id,cid,2,false));assert(b.init(c.transport_key,c.transport_id,cid,2,true));

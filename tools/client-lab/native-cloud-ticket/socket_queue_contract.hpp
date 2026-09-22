@@ -26,6 +26,7 @@ static void queue_contract(){
     AcquireSRWLockExclusive(&state->rx);state->readable_bytes=1;
     fd_set read;FD_ZERO(&read);FD_SET(s,&read);assert(kknet::select_hook(0,&read,nullptr,nullptr,&zero)==1);
     state->readable_bytes=0;ReleaseSRWLockExclusive(&state->rx);
+    linger abortive{1,0};assert(setsockopt(s,SOL_SOCKET,SO_LINGER,reinterpret_cast<char*>(&abortive),sizeof(abortive))==0);
     assert(kknet::close_hook(s)==0);assert(!state->worker.joinable()&&state->queued==0&&!kknet::find_state(s));::closesocket(peer);
     // A new handle association must have a new connection nonce and no backlog.
     s=::socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);assert(connect(s,reinterpret_cast<sockaddr*>(&endpoint),sizeof(endpoint))==0);peer=accept(listener,nullptr,nullptr);
@@ -34,6 +35,7 @@ static void queue_contract(){
     assert(kknet::send_buffers(s,bufs,2,&sent,0,nullptr,nullptr)==0&&sent==7);
     auto next=kknet::find_state(s);assert(next&&next->queued==7&&std::memcmp(next->records.cid,state->records.cid,16));
     WSAOVERLAPPED overlapped{};assert(kknet::send_buffers(s,bufs,2,&sent,0,&overlapped,nullptr)==SOCKET_ERROR&&WSAGetLastError()==WSAEOPNOTSUPP);
+    assert(setsockopt(s,SOL_SOCKET,SO_LINGER,reinterpret_cast<char*>(&abortive),sizeof(abortive))==0);
     std::thread closer([&]{assert(kknet::close_hook(s)==0);});closer.join();assert(!next->worker.joinable());
     ::closesocket(peer);::closesocket(listener);kknet::raw_send=saved;
     puts("PASS: owned queue; changed retry; full/nonblocking; blocking timeout; no readiness lock wait; scatter send; close/reuse; worker join.");

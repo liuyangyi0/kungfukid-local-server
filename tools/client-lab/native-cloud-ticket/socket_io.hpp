@@ -15,6 +15,8 @@ static auto raw_send=&::send;static auto raw_recv=&::recv;
 static auto raw_sendto=&::sendto;static auto raw_recvfrom=&::recvfrom;
 static auto raw_close=&::closesocket;static auto raw_select=&::select;
 static std::atomic<bool> traffic_enabled{true}; // lifecycle gate also enforced before any raw I/O
+static std::atomic<bool (*)()> coverage_gate{nullptr};
+inline bool coverage_valid(){auto gate=coverage_gate.load();return !gate||gate();}
 constexpr size_t queue_limit=256*1024;
 struct Guard {SRWLOCK* lock;explicit Guard(SRWLOCK& l):lock(&l){AcquireSRWLockExclusive(lock);}~Guard(){ReleaseSRWLockExclusive(lock);}};
 struct QueuedRecord {std::vector<unsigned char> wire;size_t offset=0,plain_size=0;};
@@ -22,7 +24,7 @@ struct SocketState {
     kkrecord::Records records;ULONGLONG epoch=0;SOCKET socket=INVALID_SOCKET;
     SRWLOCK tx=SRWLOCK_INIT,rx=SRWLOCK_INIT;
     std::mutex queue_lock;std::condition_variable queue_changed;std::deque<std::shared_ptr<QueuedRecord>> queue;
-    std::thread worker;std::atomic<bool> dead{false},nonblocking{false},closing{false};
+    std::thread worker;std::atomic<bool> dead{false},nonblocking{false},closing{false},accepting{true};
     std::atomic<size_t> queued{0},readable_bytes{0};
     std::vector<unsigned char> wire,plain;size_t plain_at=0;
     ~SocketState(){if(worker.joinable())std::terminate();if(!plain.empty())SecureZeroMemory(plain.data(),plain.size());}
@@ -41,7 +43,8 @@ inline void notify_socket(SOCKET s,long event,int code=0){
     if(n.window)PostMessageW(n.window,n.message,static_cast<WPARAM>(s),WSAMAKESELECTREPLY(event,code));
     if(n.event!=WSA_INVALID_EVENT)WSASetEvent(n.event);
 }
-inline bool ticket_alive(){AcquireSRWLockShared(&state_lock);bool ok=deadline>GetTickCount64();ReleaseSRWLockShared(&state_lock);return ok&&traffic_enabled;}
+inline bool ticket_valid(){AcquireSRWLockShared(&state_lock);bool ok=deadline>GetTickCount64();ReleaseSRWLockShared(&state_lock);return ok;}
+inline bool ticket_alive(){return ticket_valid()&&traffic_enabled&&coverage_valid();}
 inline bool endpoint(const sockaddr* address,int size,const TicketConfig& c,bool udp,unsigned char& channel){
     if(!address||size!=sizeof(sockaddr_in)||address->sa_family!=AF_INET)return false;
     auto a=reinterpret_cast<const sockaddr_in*>(address);if(a->sin_addr.s_addr!=c.sdk_ipv4)return false;
@@ -51,8 +54,8 @@ inline bool endpoint(const sockaddr* address,int size,const TicketConfig& c,bool
 inline std::shared_ptr<SocketState> find_state(SOCKET s){Guard lock(sockets_lock);auto it=sockets.find(s);return it==sockets.end()?nullptr:it->second;}
 inline std::shared_ptr<SocketState> state(SOCKET s,bool udp,const sockaddr* supplied=nullptr,int size=0){
     TicketConfig c{};ULONGLONG epoch=0;
-    AcquireSRWLockShared(&state_lock);bool ready=deadline>GetTickCount64()&&traffic_enabled;if(ready){c=ticket;epoch=generation;}ReleaseSRWLockShared(&state_lock);
-    if(!ready){WSASetLastError(WSAEACCES);return {};}
+    AcquireSRWLockShared(&state_lock);bool configured=deadline>GetTickCount64();bool ready=configured&&traffic_enabled&&coverage_valid();if(ready){c=ticket;epoch=generation;}ReleaseSRWLockShared(&state_lock);
+    if(!ready){WSASetLastError(configured?WSAEWOULDBLOCK:WSAEACCES);return {};}
     sockaddr_in remote{};int count=sizeof(remote);unsigned char channel=0;
     if(!supplied){if(getpeername(s,reinterpret_cast<sockaddr*>(&remote),&count)){SecureZeroMemory(&c,sizeof(c));return {};}supplied=reinterpret_cast<sockaddr*>(&remote);size=count;}
     if(!endpoint(supplied,size,c,udp,channel)){SecureZeroMemory(&c,sizeof(c));WSASetLastError(WSAEACCES);return {};}
@@ -76,11 +79,12 @@ inline void send_worker(SocketState* p){
             std::shared_ptr<QueuedRecord> record;
             {std::unique_lock<std::mutex> lock(p->queue_lock);p->queue_changed.wait_for(lock,std::chrono::milliseconds(50),[&]{return p->closing||p->dead||!p->queue.empty();});
              if(p->closing||p->dead)break;if(p->queue.empty())continue;record=p->queue.front();}
-            if(!ticket_alive()){p->dead=true;break;}
+            if(!ticket_valid()){p->dead=true;break;}
+            if(!ticket_alive()){Sleep(10);continue;}
             fd_set writable;FD_ZERO(&writable);FD_SET(p->socket,&writable);timeval timeout{0,20000};
             int ready=raw_select(0,nullptr,&writable,nullptr,&timeout);
             if(ready==SOCKET_ERROR){p->dead=true;break;}if(!ready)continue;
-            if(p->closing||!ticket_alive()){p->dead=true;break;}
+            if(p->closing||!ticket_valid()){p->dead=true;break;}if(!ticket_alive())continue;
             // No queue/global lock is held during socket I/O. Closing first
             // shuts down the owned socket and joins this worker before reuse.
             int n=raw_send(p->socket,reinterpret_cast<const char*>(record->wire.data()+record->offset),static_cast<int>(record->wire.size()-record->offset),0);
@@ -104,12 +108,12 @@ inline int WSAAPI send_hook(SOCKET s,const char* data,int n,int flags){
         DWORD timeout=0;int size=sizeof(timeout);if(getsockopt(s,SOL_SOCKET,SO_SNDTIMEO,reinterpret_cast<char*>(&timeout),&size))return SOCKET_ERROR;
         ULONGLONG until=timeout?GetTickCount64()+timeout:0;
         std::unique_lock<std::mutex> lock(p->queue_lock);
-        while(p->queued>=queue_limit&&!p->dead&&!p->closing&&ticket_alive()){
+        while(p->queued>=queue_limit&&!p->dead&&!p->closing&&p->accepting&&ticket_alive()){
             if(p->nonblocking)return error(WSAEWOULDBLOCK);
             if(until&&GetTickCount64()>=until)return error(WSAETIMEDOUT);
             p->queue_changed.wait_for(lock,std::chrono::milliseconds(until?(std::min)(ULONGLONG(50),until-GetTickCount64()):50));
         }
-        if(p->dead||p->closing||!ticket_alive())return error(WSAECONNRESET);
+        if(p->dead||p->closing||!p->accepting||!ticket_alive())return error(WSAECONNRESET);
         if(!p->worker.joinable())p->worker=std::thread(send_worker,p.get());
         size_t accept=(std::min)(static_cast<size_t>(n),queue_limit-p->queued.load()),at=0;
         try{while(at<accept){
@@ -170,8 +174,19 @@ inline void stop(const std::shared_ptr<SocketState>& p){
 }
 static std::mutex stop_lock;
 inline int WSAAPI close_hook(SOCKET s){
-    CallScope scope;std::lock_guard<std::mutex> stopping(stop_lock);auto p=find_state(s);stop(p);
-    {Guard lock(sockets_lock);sockets.erase(s);notifications.erase(s);modes.erase(s);}return raw_close(s);
+    CallScope scope;std::lock_guard<std::mutex> stopping(stop_lock);auto p=find_state(s);bool timed_out=false;
+    if(p){
+        linger option{};int size=sizeof(option);if(getsockopt(s,SOL_SOCKET,SO_LINGER,reinterpret_cast<char*>(&option),&size))return SOCKET_ERROR;
+        std::unique_lock<std::mutex> lock(p->queue_lock);p->accepting=false;p->queue_changed.notify_all();
+        bool abortive=option.l_onoff&&option.l_linger==0;
+        if(!abortive&&p->queued&&!p->dead){
+            if(option.l_onoff&&p->nonblocking)return error(WSAEWOULDBLOCK);
+            auto timeout=std::chrono::milliseconds(option.l_onoff?static_cast<unsigned long long>(option.l_linger)*1000:2000);
+            timed_out=!p->queue_changed.wait_for(lock,timeout,[&]{return !p->queued||p->dead;});
+        }
+    }
+    stop(p);{Guard lock(sockets_lock);sockets.erase(s);notifications.erase(s);modes.erase(s);}
+    int result=raw_close(s);if(!result&&timed_out)return error(WSAETIMEDOUT);return result;
 }
 inline int WSAAPI ioctls_hook(SOCKET s,long cmd,u_long* value){
     int result=ioctlsocket(s,cmd,value);if(!result&&cmd==FIONBIO&&value){Guard lock(sockets_lock);if(modes.size()<64||modes.count(s))modes[s]=*value!=0;auto it=sockets.find(s);if(it!=sockets.end())it->second->nonblocking=*value!=0;}return result;
@@ -184,7 +199,7 @@ inline int WSAAPI select_hook(int n,fd_set* read,fd_set* write,fd_set* except,co
     while(true){
         fd_set r=requested_r,w=requested_w,e=requested_e,vr{},vw{};
         for(u_int i=0;i<requested_r.fd_count;i++){auto p=find_state(requested_r.fd_array[i]);if(p&&(p->readable_bytes||p->dead))FD_SET(p->socket,&vr);}
-        for(u_int i=0;i<requested_w.fd_count;i++){auto p=find_state(requested_w.fd_array[i]);if(p){FD_CLR(p->socket,&w);if(!p->dead&&!p->closing&&p->queued<queue_limit&&ticket_alive())FD_SET(p->socket,&vw);}}
+        for(u_int i=0;i<requested_w.fd_count;i++){auto p=find_state(requested_w.fd_array[i]);if(p){FD_CLR(p->socket,&w);if(!p->dead&&!p->closing&&p->accepting&&p->queued<queue_limit&&ticket_alive())FD_SET(p->socket,&vw);}}
         ULONGLONG elapsed=GetTickCount64()-start;long ms=vr.fd_count||vw.fd_count?0:20;if(timeout)ms=static_cast<long>((std::min)(ULONGLONG(ms),duration>elapsed?duration-elapsed:0));
         timeval wait{0,ms*1000};int result=0;
         if(r.fd_count||w.fd_count||e.fd_count)result=raw_select(n,r.fd_count?&r:nullptr,w.fd_count?&w:nullptr,e.fd_count?&e:nullptr,&wait);else if(ms)Sleep(ms);
@@ -213,8 +228,8 @@ inline int WSAAPI enum_events(SOCKET s,WSAEVENT event,LPWSANETWORKEVENTS events)
     auto p=find_state(s);Notification interest;{Guard lock(sockets_lock);auto it=notifications.find(s);if(it!=notifications.end())interest=it->second;}
     if(p){
         if(p->readable_bytes&&(interest.mask&FD_READ)){events->lNetworkEvents|=FD_READ;events->iErrorCode[FD_READ_BIT]=0;}
-        if(p->queued>=queue_limit)events->lNetworkEvents&=~FD_WRITE;
-        else if(!p->dead&&!p->closing&&(interest.mask&FD_WRITE)){events->lNetworkEvents|=FD_WRITE;events->iErrorCode[FD_WRITE_BIT]=0;}
+        if(p->queued>=queue_limit||!p->accepting||!ticket_alive())events->lNetworkEvents&=~FD_WRITE;
+        else if(!p->dead&&!p->closing&&p->accepting&&ticket_alive()&&(interest.mask&FD_WRITE)){events->lNetworkEvents|=FD_WRITE;events->iErrorCode[FD_WRITE_BIT]=0;}
         if(p->dead&&(interest.mask&FD_CLOSE)){events->lNetworkEvents|=FD_CLOSE;events->iErrorCode[FD_CLOSE_BIT]=WSAECONNRESET;}
     }return 0;
 }
@@ -252,5 +267,14 @@ inline void retire(){
     {Guard lock(sockets_lock);retired=true;for(auto& item:sockets)all.push_back(item.second);}
     for(auto& p:all)stop(p);
     {Guard lock(sockets_lock);sockets.clear();notifications.clear();modes.clear();udp_state.reset();}
+}
+inline void resume(){
+    traffic_enabled=true;std::vector<SOCKET> notify;
+    {Guard lock(sockets_lock);for(const auto& item:notifications)notify.push_back(item.first);for(const auto& item:sockets)item.second->queue_changed.notify_all();}
+    for(SOCKET s:notify){
+        notify_socket(s,FD_WRITE);auto p=find_state(s);
+        fd_set read;FD_ZERO(&read);FD_SET(s,&read);timeval zero{};
+        if((p&&p->readable_bytes)||raw_select(0,&read,nullptr,nullptr,&zero)>0)notify_socket(s,FD_READ);
+    }
 }
 }

@@ -5,7 +5,7 @@ Add-Type -AssemblyName System.Web.Extensions,System.Xml
 Add-Type -Path (Join-Path $PSScriptRoot 'NativeCloudHandoff.cs') -ReferencedAssemblies System,System.Core,System.Web.Extensions,System.Xml
 $dll=[IO.Path]::GetFullPath((Join-Path $BuildDirectory 'kk_native_cloud_ticket.dll'))
 $exe=[IO.Path]::GetFullPath((Join-Path $BuildDirectory 'contract.exe'))
-foreach($export in @('KkNativeCloudSetTicket','KkNativeCloudInstall','KkNativeCloudGetStatus','KkNativeCloudClearTicket','KkNativeCloudRemove')){
+foreach($export in @('KkNativeCloudSetTicket','KkNativeCloudInstall','KkNativeCloudGetStatus','KkNativeCloudGetStatusV2','KkNativeCloudClearTicket','KkNativeCloudRemove')){
  if([KKLocalAccounts.NativeCloudHandoff]::ExportRva($dll,$export) -eq 0){throw 'Missing export'}
 }
 $xml='<GameClient><Updater><UpdateInfo Url="http://example.invalid/update" /></Updater><RegisterURL URL="http://example.invalid/register"/><LoginServer Ip="192.0.2.1" Port="8000"/></GameClient>'
@@ -38,6 +38,9 @@ try{
  if([KKLocalAccounts.NativeCloudHandoff]::Invoke($child.Id,$exe,$dll,'KkNativeCloudRemove',$null) -ne 0){throw 'Cleanup failed'}
  [void][KKLocalAccounts.NativeCloudHandoff]::Invoke($child.Id,$exe,$dll,'KkNativeCloudGetStatus',$status)
  if([BitConverter]::ToUInt32($status,8) -ne 0){throw 'Ticket remained configured'}
+ $v2=New-Object byte[] 44
+ [Array]::Copy([BitConverter]::GetBytes([uint32]44),0,$v2,0,4);[Array]::Copy([BitConverter]::GetBytes([uint32]2),0,$v2,4,4)
+ if([KKLocalAccounts.NativeCloudHandoff]::Invoke($child.Id,$exe,$dll,'KkNativeCloudGetStatusV2',$v2) -ne 0 -or [BitConverter]::ToUInt32($v2,8) -ne 4){throw 'Retired V2 lifecycle status missing'}
  $grant['sdk_port']=18001
  $rejected=$false
  try{[void][KKLocalAccounts.NativeCloudHandoff]::Pack($child.Id,'ModelUser',$grant,'127.0.0.1',18000)}catch{$rejected=$true}

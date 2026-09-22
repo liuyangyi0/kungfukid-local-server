@@ -168,7 +168,12 @@ public static class NativeCloudHandoff {
  public static uint Status(int pid,string exe,string dll){var data=new byte[16];uint code=Invoke(pid,exe,dll,"KkNativeCloudGetStatus",data);if(code!=0||BitConverter.ToUInt32(data,0)!=16)throw new InvalidOperationException("native_adapter_status_failed");return BitConverter.ToUInt32(data,4);}
  public static void WaitInstalled(int pid,string exe,string dll,uint mask,int seconds){
   DateTime deadline=DateTime.UtcNow.AddSeconds(seconds);
-  do{uint code=Invoke(pid,exe,dll,"KkNativeCloudInstall",null);if(code!=0&&code!=126&&code!=170)throw new InvalidOperationException("native_adapter_install_failed");if((Status(pid,exe,dll)&mask)==mask)return;Thread.Sleep(150);}while(DateTime.UtcNow<deadline);
+  do{uint code=Invoke(pid,exe,dll,"KkNativeCloudInstall",null);if(code!=0&&code!=126&&code!=170)throw new InvalidOperationException("native_adapter_install_failed");
+   byte[] status=new byte[44];Array.Copy(BitConverter.GetBytes((uint)44),0,status,0,4);Array.Copy(BitConverter.GetBytes((uint)2),0,status,4,4);
+   if(Invoke(pid,exe,dll,"KkNativeCloudGetStatusV2",status)!=0)throw new InvalidOperationException("native_adapter_status_failed");
+   if(BitConverter.ToUInt32(status,0)!=44||BitConverter.ToUInt32(status,4)!=2)throw new InvalidOperationException("native_adapter_status_version_mismatch");
+   if(BitConverter.ToUInt32(status,8)==2&&(BitConverter.ToUInt32(status,12)&mask)==mask&&BitConverter.ToUInt32(status,24)==BitConverter.ToUInt32(status,28)&&BitConverter.ToUInt32(status,32)==0&&BitConverter.ToUInt32(status,40)==0)return;
+   Thread.Sleep(150);}while(DateTime.UtcNow<deadline);
   throw new InvalidOperationException("native_modules_timeout");
  }
  [StructLayout(LayoutKind.Sequential,CharSet=CharSet.Unicode)]struct ProcessEntry {
