@@ -77,6 +77,7 @@ def validate_options(mode,args):
         if args.database==':memory:':raise ValueError('persistent public database required')
         for field in ('auth_certificate','auth_key','security_policy'):
             if not getattr(args,field):raise ValueError('public security inputs required')
+            if str(Path(getattr(args,field)).resolve()).casefold() in outputs:raise ValueError('public output overlaps security input')
         args.public_policy=PublicPolicy.load(args.security_policy)
     elif mode=='native':
         if not args.enable_native_adapter_testing:raise ValueError('native adapter testing must be explicit')

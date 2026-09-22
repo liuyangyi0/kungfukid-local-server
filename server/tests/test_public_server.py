@@ -35,6 +35,11 @@ def prepare(root,policy=None):
                            listen_host='127.0.0.1',advertised_host='127.0.0.1',game_port=0,sdk_port=0,udp_port=0,auth_port=0,health_port=0,public_policy=policy or PublicPolicy())
 
 class PublicUnitTests(unittest.TestCase):
+    def test_runtime_outputs_cannot_alias_tls_credentials(self):
+        from server.kk_local.app.configuration import validate_options
+        args=SimpleNamespace(database='accounts.sqlite3',events='tls-key.pem',auth_key='tls-key.pem',auth_certificate='certificate.pem',security_policy='policy.json',
+                             listen_host='127.0.0.1',advertised_host='127.0.0.1',auth_port=17999,sdk_port=18000,game_port=18001,udp_port=18001,health_port=18090)
+        with self.assertRaisesRegex(ValueError,'overlaps security input'):validate_options('public',args)
     def test_unsafe_capacity_timeout_and_budget_overrides_refused(self):
         for options in (dict(online=101),dict(tls_seconds=60),dict(pending_connections=1000),dict(hash_wait_seconds=10),dict(outgoing_bytes=1<<40)):
             with self.assertRaises(ValueError):PublicPolicy(**options)
