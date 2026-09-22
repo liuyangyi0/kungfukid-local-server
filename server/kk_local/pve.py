@@ -25,10 +25,12 @@ def decode(payload):
             row.update(template=struct.unpack_from('<I',p,47)[0],position=finite(struct.unpack_from('<fff',p,51)),
                        direction_raw=struct.unpack_from('<I',p,63)[0])
     elif ident==20402:
-        #8279E0 passes words39/43 and addresses51/47 to mode vslot272.
-        #Consumer alone does not prove producer authority or vector semantics.
+        #93C060/942010 create_item ->8279E0: item type, parameter0,
+        #created object key and actor position. First two words are NOT a UID.
         row.update(actor_words_raw=struct.unpack_from('<II',p,39),
-                   parameter_47_raw=struct.unpack_from('<I',p,47)[0],payload_51_63=p[51:63])
+                   parameter_47_raw=struct.unpack_from('<I',p,47)[0],payload_51_63=p[51:63],
+                   item_type=struct.unpack_from('<I',p,39)[0],creation_parameter=struct.unpack_from('<I',p,43)[0],
+                   object_key=struct.unpack_from('<I',p,47)[0],position=finite(struct.unpack_from('<fff',p,51)))
     elif ident==20406:
         #827FC0 derives actor slot from common sender; no arbitrary target UID.
         row['mode_arguments_raw']=struct.unpack_from('<II',p,39)

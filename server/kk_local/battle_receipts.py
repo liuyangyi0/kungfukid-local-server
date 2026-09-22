@@ -42,6 +42,10 @@ class BattleReceipts:
 
         Native82B8D0 can generate8150; nonempty/unknown effect lists remain
         closed until their overlap with direct8150 has a separate contract.
+        The original receipt also appends Action+0x38 hit events and records
+        SkillHitPostTracker state BEFORE dispatching attacker effects. Do not
+        replace the entire receipt with a synthetic8150, or execute these
+        client-side side effects again in the relay.
         """
         hub = self.hub
         room=engine.room;uid=c.uid;require=engine.require

@@ -214,18 +214,21 @@ def decode_battle(data):
         #82CDC0: local Host gate; actor is common sender, not a second UID.
         result.update(mode_family='kof',value_39_raw=struct.unpack_from('<I',data,39)[0])
     elif ident==8421:
-        #828DF0: bounded resource-name slot, raw update context and RW matrix.
-        #Never forward caller-controlled resource/context solely on this shape.
+        #976090(CreateSceneEffect) ->828DF0: +71 comes from Lua SceneID,
+        #despite the consumer's void* type. Retain raw alias for old callers.
         name=data[39:71];end=name.find(b'\0')
         if end<0:raise ProtocolError('unterminated battle resource name')
         result.update(resource_name_raw=name[:end],resource_padding_raw=name[end+1:],
+                      scene_id=struct.unpack_from('<i',data,71)[0],
                       update_context_raw=struct.unpack_from('<I',data,71)[0],**matrix_payload(data,75))
     elif ident==8452:
-        #829C80 -> WeaponManagerOwner_create_immediate. Preserve unknown
-        #parameter domains; do not equate these with inventory grants.
+        #974FB0(CreatePItem)->A1B5B0->9BADB0 fills key after creation.
+        #Scene object spawn, NOT a permanent inventory/ownership grant.
         result.update(owner_words_raw=struct.unpack_from('<II',data,39),
                       parameter_47_raw=struct.unpack_from('<I',data,47)[0],
-                      creation_words_raw=struct.unpack_from('<III',data,51))
+                      creation_words_raw=struct.unpack_from('<III',data,51),
+                      item_id=struct.unpack_from('<I',data,39)[0],scene_id=struct.unpack_from('<i',data,43)[0],
+                      object_key=struct.unpack_from('<I',data,47)[0],position=finite(struct.unpack_from('<fff',data,51)))
     elif ident == 8294:
         #82D090 ->95C7E0 ->95B880 UI interval arguments; enums not closed.
         result.update(interval_arguments_raw=struct.unpack_from('<II',data,39))

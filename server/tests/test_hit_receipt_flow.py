@@ -2,13 +2,40 @@
 import struct
 import unittest
 import xml.etree.ElementTree as ET
-from server.kk_local.combat_catalog import CombatCatalog
+from server.kk_local.combat_catalog import CombatCatalog,UStateEffect
 from server.kk_local.wire import Message,ProtocolError
 from server.tests import test_shared_rooms as fixtures
 from server.tests.test_battle_effect_relay import effect
 
 
 class CombatCatalogTests(unittest.TestCase):
+    def test_ordered_triples_preserve_duplicate_rows_signed_values_and_cycle_units(self):
+        catalog=CombatCatalog.from_xml(ET.fromstring('''<SkillProperty><PropertyItem SkillProId="10"><LogicEffects>
+          <TargetUstate UstateID="8" Level="-2" Cycle="500"/>
+          <AttackerUstate UstateID="12" Level="3" Cycle="50"/>
+          <AttackerUstate UstateID="12" Level="3" Cycle="50"/>
+          <AttackerUstate UstateID="13" Level="-1" Cycle="-1"/>
+        </LogicEffects></PropertyItem></SkillProperty>'''))
+        self.assertEqual(catalog.target_effects[10],(UStateEffect(8,-2,500),))
+        self.assertEqual(catalog.attacker_effects[10],(UStateEffect(12,3,50),UStateEffect(12,3,50),UStateEffect(13,-1,-1)))
+        self.assertEqual(catalog.receipt_policy(10),'attacker_effect_correlation_required')
+        self.assertFalse(catalog.permits_effect_free_receipt(10))
+        with self.assertRaises(TypeError):catalog.attacker_effects[10]=()
+    def test_missing_attributes_use_native_zero_default_not_an_empty_list(self):
+        catalog=CombatCatalog.from_xml(ET.fromstring('<SkillProperty><PropertyItem SkillProId="1"><LogicEffects><AttackerUstate/></LogicEffects></PropertyItem><PropertyItem SkillProId="2"/></SkillProperty>'))
+        self.assertEqual(catalog.attacker_effects[1],(UStateEffect(0,0,0),))
+        self.assertEqual(catalog.attacker_effects[2],())
+        self.assertEqual(catalog.receipt_policy(1),'attacker_effect_correlation_required')
+        self.assertEqual(catalog.receipt_policy(2),'effect_free')
+        self.assertEqual(catalog.receipt_policy(3),'definition_missing')
+    def test_invalid_or_conflicting_effect_definitions_are_quarantined(self):
+        for value in ('bad','2147483648','-2147483649'):
+            for field in ('UstateID','Level','Cycle'):
+                catalog=CombatCatalog.from_xml(ET.fromstring(f'<SkillProperty><PropertyItem SkillProId="1"><LogicEffects><TargetUstate {field}="{value}"/></LogicEffects></PropertyItem></SkillProperty>'))
+                self.assertEqual(catalog.receipt_policy(1),'invalid_definition')
+                self.assertNotIn(1,catalog.target_effects);self.assertFalse(catalog.permits_effect_free_receipt(1))
+        catalog=CombatCatalog.from_xml(ET.fromstring('<SkillProperty><PropertyItem SkillProId="1"/><PropertyItem SkillProId="1"><LogicEffects><AttackerUstate/></LogicEffects></PropertyItem></SkillProperty>'))
+        self.assertEqual(catalog.receipt_policy(1),'invalid_definition');self.assertNotIn(1,catalog.attacker_effects)
     def test_empty_target_only_and_attacker_lists_differ(self):
         root=ET.fromstring('''<SkillProperty>
           <PropertyItem SkillProId="1"/>

@@ -26,24 +26,44 @@ class RemainingBattleLayouts(unittest.TestCase):
         self.assertEqual(decode_battle(body(8395,39))['mode_family'],'kof')
         p=body(8396,43);struct.pack_into('<I',p,39,0xffffffff)
         row=decode_battle(p);self.assertEqual(row['value_39_raw'],0xffffffff);self.assertNotIn('player',row)
-    def test_effect_resource_is_bounded_matrix_finite_context_opaque(self):
+    def test_effect_resource_is_bounded_matrix_finite_and_scene_is_not_pointer(self):
         p=body(8421,139);p[39:43]=b'fx\0x';struct.pack_into('<I',p,71,0xfefefefe)
         row=decode_battle(p);self.assertEqual(row['resource_name_raw'],b'fx');self.assertEqual(row['update_context_raw'],0xfefefefe)
+        self.assertEqual(row['scene_id'],struct.unpack('<i',struct.pack('<I',0xfefefefe))[0])
         self.assertEqual(row['resource_padding_raw'][0:1],b'x')
         struct.pack_into('<f',p,75,float('nan'))
         with self.assertRaises(ProtocolError):decode_battle(p)
         p=body(8421,139);p[39:71]=b'x'*32
         with self.assertRaises(ProtocolError):decode_battle(p)
-    def test_weapon_creation_keeps_unknown_words_not_inventory(self):
+    def test_weapon_creation_resolves_item_scene_key_and_position_without_inventory(self):
         p=body(8452,63);struct.pack_into('<6I',p,39,1,2,3,4,5,6);row=decode_battle(p)
         self.assertEqual(row['owner_words_raw'],(1,2));self.assertEqual(row['parameter_47_raw'],3)
         self.assertEqual(row['creation_words_raw'],(4,5,6))
+        struct.pack_into('<IIIf',p,39,253033,7,12345,-0.0);struct.pack_into('<ff',p,55,-20.5,18.25)
+        row=decode_battle(p)
+        self.assertEqual((row['item_id'],row['scene_id'],row['object_key']),(253033,7,12345))
+        self.assertEqual(row['position'],(-0.0,-20.5,18.25));self.assertEqual(row['creation_words_raw'][0],0x80000000)
     def test_remaining_pve_slots_keep_raw_arguments_and_noop_opaque(self):
         p=body(20402,63);struct.pack_into('<6I',p,39,1,2,3,4,5,6);row=decode_pve(p)
         self.assertEqual(row['actor_words_raw'],(1,2));self.assertEqual(row['payload_51_63'],struct.pack('<III',4,5,6))
+        self.assertEqual((row['item_type'],row['creation_parameter'],row['object_key']),(1,2,3))
+        self.assertNotIn('actor',row)
         p=body(20406,47);struct.pack_into('<II',p,39,7,8);row=decode_pve(p)
         self.assertEqual(row['sender'],1001);self.assertEqual(row['mode_arguments_raw'],(7,8))
         self.assertEqual(decode_pve(body(20408,63))['opaque_body'],bytes(24))
+    def test_spawn_positions_reject_nonfinite_on_all_three_axes(self):
+        for ident in (8452,20402):
+            decoder=decode_pve if ident==20402 else decode_battle
+            for offset in (51,55,59):
+                for value in (float('nan'),float('inf'),float('-inf')):
+                    p=body(ident,63);struct.pack_into('<f',p,offset,value)
+                    with self.subTest(ident=ident,offset=offset,value=value),self.assertRaises(ProtocolError):decoder(p)
+    def test_unsafe8156_stays_undecoded_at_every_plausible_legacy_size(self):
+        #8286A0 copies incomingSize to ebp-14h BEFORE mode check, then the
+        #dispatcher falls through into8270 with the unchanged pointer/size.
+        for size in (39,63,87,108):
+            self.assertIsNone(decode_battle(body(8156,size)))
+        self.assertNotIn(8156,BASIC_BATTLE)
     def test_all_new_shapes_exact_and_still_not_exposed(self):
         for ident,size in ((8395,39),(8396,43),(8421,139),(8452,63),(20402,63),(20406,47),(20408,63)):
             decode=decode_pve if ident>=20400 else decode_battle
