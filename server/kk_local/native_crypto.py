@@ -7,7 +7,6 @@ No unauthenticated plaintext is returned, and no plaintext fallback exists.
 import asyncio
 import hmac
 import struct
-import time
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from .wire import ProtocolError
@@ -93,7 +92,7 @@ class RecordWriter:
     def get_extra_info(self,*args):return self.raw.get_extra_info(*args)
 
 class NativeProtection:
-    def __init__(self,admission):self.admission=admission;self.udp_window=0;self.udp_count=0
+    def __init__(self,admission):self.admission=admission
     def grant(self,sid):
         grant=next((g for g in self.admission.grants.values() if g.transport_id==sid),None)
         if grant is None:raise RecordError('unknown transport')
@@ -113,10 +112,6 @@ class NativeProtection:
         grant.transport_connections.add(identity)
         return RecordReader(reader,records,plain),RecordWriter(writer,records),grant
     def datagram(self,data):
-        now=int(time.monotonic())
-        if now!=self.udp_window:self.udp_window=now;self.udp_count=0
-        self.udp_count+=1
-        if self.udp_count>4096:raise RecordError('encrypted UDP ingress budget')
         channel,direction,sid,cid,_,_=inspect(data[:HEADER.size])
         if channel!=UDP or direction or cid!=bytes(16):raise RecordError('UDP binding')
         grant=self.grant(sid)

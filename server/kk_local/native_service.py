@@ -15,7 +15,8 @@ from .auth import AuthError
 from .engine import Connection,Phase
 from . import packets
 from .native_relay import NativeRelay
-from .native_crypto import NativeProtection,SDK,GAME
+from .native_crypto import NativeProtection,RecordError,SDK,GAME
+from .native_udp_policy import DatagramPolicy,IngressBudget,RejectionSummary
 from .wire import GameDecoder,Message,ProtocolError,encode_game,sdp_header,read_login,encode_login
 
 
@@ -25,6 +26,12 @@ class NativeDatagrams(asyncio.DatagramProtocol):
     def datagram_received(self,data,peer):
         s=self.service
         try:
+            bound=s.relay.peers.get(peer)
+            if bound is not None:
+                try:s.admission.validate(bound)
+                except AuthError:bound=None
+            if not s.ingress.allow(peer,bound.credential_digest if bound is not None else None):
+                s.rejections.add('preauth_budget');return
             outer=None
             if s.protection:outer,data=s.protection.datagram(data)
             ident,_,_,_,_,_=sdp_header(data)
@@ -35,17 +42,23 @@ class NativeDatagrams(asyncio.DatagramProtocol):
             if grant is None:raise AuthError('unbound_udp')
             if outer is not None and outer is not grant:raise AuthError('encrypted UDP identity mismatch')
             s.relay.handle(grant,data,peer)
-        except (AuthError,ProtocolError,ValueError) as exc:s.event('native_udp_rejected',reason=type(exc).__name__)
+        except RecordError:s.rejections.add('invalid_record')
+        except AuthError:s.rejections.add('identity_or_phase')
+        except (ProtocolError,ValueError):s.rejections.add('native_shape')
 
 
 class NativeService:
     def __init__(self,admission,*,game_port=0,udp_port=0,sdk_port=0,udp_login_verifier=None,
-                 event_sink=None,idle_seconds=30,plaintext_test_only=False):
+                 event_sink=None,idle_seconds=30,plaintext_test_only=False,datagram_policy=None,clock=time.monotonic):
         self.admission=admission;self.game_port=game_port;self.udp_port=udp_port
         self.sdk_port=sdk_port;self.sdk_listener=None
         self.udp_login_verifier=udp_login_verifier or admission.resolve_udp;self.event_sink=event_sink or (lambda _:None)
         self.idle_seconds=idle_seconds;self.listener=None;self.udp=None;self.tasks=set();self.writers=set();self.sequence=0
-        self.relay=NativeRelay(admission,emit=self.send_udp,event=lambda **r:self.event_sink(r))
+        policy=datagram_policy or DatagramPolicy()
+        self.ingress=IngressBudget(policy=policy,clock=clock)
+        self.rejections=RejectionSummary(self.event_sink,clock=clock,seconds=policy.summary_seconds)
+        self.summary_task=None
+        self.relay=NativeRelay(admission,emit=self.send_udp,event=lambda **r:self.rejections.add('direct_not_advertised'))
         self.protection=None if plaintext_test_only else NativeProtection(admission)
 
     def event(self,event,**fields):
@@ -67,10 +80,14 @@ class NativeService:
             self.admission.game_port=self.game_port;self.admission.udp_port=self.udp_port
             self.sdk_listener=await asyncio.start_server(self.sdk,'127.0.0.1',self.sdk_port)
             self.sdk_port=self.sdk_listener.sockets[0].getsockname()[1];self.admission.sdk_port=self.sdk_port
+            self.summary_task=asyncio.create_task(self.summarize())
             return self
         except BaseException:await self.close();raise
 
     async def close(self):
+        if self.summary_task:
+            self.summary_task.cancel();await asyncio.gather(self.summary_task,return_exceptions=True);self.summary_task=None
+        with contextlib.suppress(OSError):self.rejections.flush(force=True)
         if self.sdk_listener:self.sdk_listener.close();await self.sdk_listener.wait_closed();self.sdk_listener=None
         if self.listener:self.listener.close();await self.listener.wait_closed();self.listener=None
         if self.udp:self.udp.close();self.udp=None
@@ -79,6 +96,11 @@ class NativeService:
         for task in tasks:task.cancel()
         if tasks:await asyncio.gather(*tasks,return_exceptions=True)
         for grant in tuple(self.admission.grants.values()):self.relay.forget(grant);self.admission.release(grant)
+
+    async def summarize(self):
+        while True:
+            await asyncio.sleep(1)
+            with contextlib.suppress(OSError):self.rejections.flush()
 
     async def sdk(self,reader,writer):
         if len(self.writers)>=32:writer.close();return
