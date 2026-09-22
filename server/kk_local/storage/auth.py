@@ -5,6 +5,7 @@ from .transactions import require_transaction
 class AuthRepository:
     def __init__(self, db):
         self._db = db
+        self.on_remove=None
 
     def credential(self, name):
         return self._db.execute(
@@ -54,10 +55,13 @@ class AuthRepository:
     def remove_session(self, digest):
         require_transaction(self._db)
         self._db.execute('DELETE FROM auth_sessions WHERE digest=?', (digest,))
+        if self.on_remove:self.on_remove(digest)
 
     def remove_account_sessions(self, uid):
         require_transaction(self._db)
+        digests=self.session_digests(uid) if self.on_remove else []
         self._db.execute('DELETE FROM auth_sessions WHERE uid=?', (uid,))
+        for row in digests:self.on_remove(row[0])
 
     def ticket(self, digest):
         return self._db.execute('SELECT t.uid,t.region,t.expires,s.expires FROM auth_tickets t '

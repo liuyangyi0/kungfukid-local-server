@@ -84,6 +84,9 @@ class AuthManager:
     def _save_additional_verifier(self, uid, name, verifier):
         """Called only inside the same successful credential/session transaction."""
 
+    def _registered_locked(self,uid):pass
+    def _login_allowed_locked(self,uid):return True
+
     def close(self):
         self.pool.shutdown(wait=True,cancel_futures=True)
 
@@ -114,6 +117,7 @@ class AuthManager:
             self.store.provision_local(uid,name,nickname)
             self.records.insert_credential(uid,name,ALGORITHM,salt,digest)
             self._save_additional_verifier(uid,name,additional)
+            self._registered_locked(uid)
             return dict(uid=uid,account=name,nickname=nickname)
 
     async def login(self, account, password):
@@ -141,7 +145,7 @@ class AuthManager:
         with self.store.transaction('nested login transaction'):
             # Do not grant a stale password after a concurrent local reset.
             current=read(name)
-            valid=valid and current==row
+            valid=valid and current==row and self._login_allowed_locked(row[0])
             blocked=self.records.failure(name)
             if blocked and blocked[1]>now:
                 raise AuthError('rate_limited')

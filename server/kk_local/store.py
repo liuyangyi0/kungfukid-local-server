@@ -2,6 +2,8 @@
 from pathlib import Path
 import sqlite3
 import struct
+import time
+from contextlib import contextmanager
 
 from .features.inventory import (InventoryService,EQUIPMENT_SLOTS,PERMANENT_WEAPON_DISPLAY_MINUTES,
                                  permanent_weapon_record,permanent_equipment_record)
@@ -23,11 +25,17 @@ from .storage.transactions import transaction
 
 
 class Store:
-    def __init__(self, path: str):
+    def __init__(self, path: str, *, public=False):
+        if public and (path==':memory:' or not Path(path).is_file()):raise ValueError('existing migrated public database required')
         if path != ':memory:':
             Path(path).parent.mkdir(parents=True, exist_ok=True)
         self.db = sqlite3.connect(path)
+        self.public_mode=public;self._commit_callbacks=[];self.transaction_observer=None
         try:
+            if public:
+                from .storage.public_access import version,VERSION
+                if version(self.db)!=VERSION:raise ValueError('public_schema_migration_required')
+                self.db.execute('PRAGMA busy_timeout=0');self.db.execute('PRAGMA journal_mode=WAL');self.db.execute('PRAGMA synchronous=FULL')
             self.db.execute('PRAGMA foreign_keys=ON')
             from .storage.schema import initialize
             initialize(self.db)
@@ -56,6 +64,15 @@ class Store:
         return self.db.in_transaction
 
     @property
+    def public_access(self):
+        from .storage.public_access import PublicAccessRepository
+        return PublicAccessRepository(self.db)
+
+    def migrate_public(self):
+        from .storage.public_schema import migrate
+        migrate(self.db)
+
+    @property
     def authentication(self):
         # Optional schema stays lazy: offline modes do not create auth tables.
         if self._auth_repository is None:
@@ -65,8 +82,21 @@ class Store:
             self._auth_repository=AuthRepository(self.db)
         return self._auth_repository
 
+    @contextmanager
     def transaction(self,message='nested transaction',*,immediate=True):
-        return transaction(self.db,message,immediate=immediate)
+        if self.db.in_transaction:raise ValueError(message)
+        self._commit_callbacks=[];began=time.monotonic()
+        try:
+            with transaction(self.db,message,immediate=immediate):yield
+        except BaseException:self._commit_callbacks=[];raise
+        finally:
+            if self.transaction_observer:self.transaction_observer(time.monotonic()-began)
+        callbacks=self._commit_callbacks;self._commit_callbacks=[]
+        for callback in callbacks:callback()
+
+    def after_commit(self,callback):
+        if not self.db.in_transaction:raise ValueError('commit callback requires transaction')
+        self._commit_callbacks.append(callback)
 
     def _upgrade_quest_progress(self):
         #Private compatibility entry; implementation has one authority.

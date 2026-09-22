@@ -90,7 +90,7 @@ class StorageBoundaryTests(unittest.TestCase):
                        n.attr in ('db','_db','execute','executemany','executescript','commit','rollback')]
             self.assertEqual(forbidden,[],relative)
         for path in (root/'storage').glob('*.py'):
-            if path.name in ('schema.py','transactions.py'):continue
+            if path.name in ('schema.py','public_schema.py','transactions.py'):continue
             relative=path.name
             tree=ast.parse(path.read_text(encoding='utf-8'))
             self.assertFalse(any(isinstance(n,ast.Attribute) and n.attr in ('commit','rollback') for n in ast.walk(tree)),relative)
