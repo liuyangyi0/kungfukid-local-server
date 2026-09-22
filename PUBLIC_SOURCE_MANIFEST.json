@@ -2,6 +2,16 @@
   "schema": "kk-public-source-manifest-v1",
   "source_files": [
     {
+      "path": "server/tests/test_public_battle_dispatch.py",
+      "bytes": 12115,
+      "sha256": "76e2a40bc29580b573b148495ae5d9fb3f5c13f44b62855f96a82b6eef4d98b1"
+    },
+    {
+      "path": "server/tests/test_battle_remaining_layouts.py",
+      "bytes": 3483,
+      "sha256": "53aaea18be2aa1fd72b148d051101decc78f0e103f2c26288b8732140fb9124b"
+    },
+    {
       "path": "server/deploy/VALIDATION.md",
       "bytes": 6136,
       "sha256": "72369778491939f3125218330dfb17cdb2401e9efe09f06392612861f8a2faed"
@@ -18,13 +28,13 @@
     },
     {
       "path": "server/kk_local/app/public.py",
-      "bytes": 4414,
-      "sha256": "0c5194b339827793ebe1284f5c22fe0a3e0e5dad3dff209c8817b8c0c42643ea"
+      "bytes": 4625,
+      "sha256": "6c88aacabf1449048bff89f8cbab897cf8ddf05bb414a09331cbf761fb5c5d02"
     },
     {
       "path": "server/kk_local/public_policy.py",
-      "bytes": 6868,
-      "sha256": "d2a0425c5b73871beea615917354f3edefe93806f48a88075320b7c7117ef344"
+      "bytes": 6951,
+      "sha256": "f7a2ce07e167b45869dbf39a3aaf9b297eb677db3c90105e76c3a95abeb9b4a0"
     },
     {
       "path": "server/kk_local/public_listener.py",
@@ -38,13 +48,13 @@
     },
     {
       "path": "server/kk_local/public_auth_api.py",
-      "bytes": 6344,
-      "sha256": "ec7fedef95f861e138dad1e09fbc704fe845b7de0a4fa854da52246be111b5ec"
+      "bytes": 6539,
+      "sha256": "ada48c2658155687eda8c6440f4236021044d1a8dfc38f6c1adc5f62457fa580"
     },
     {
       "path": "server/kk_local/public_commands.py",
-      "bytes": 6128,
-      "sha256": "9cb04bb7e7e53c2d12f742d53a996586888ac409e9490ae5ad092791589f3d97"
+      "bytes": 6976,
+      "sha256": "c0a194a05f0a474be820d888d93f4ab23858fb585ff61c5b5f970d9990d89257"
     },
     {
       "path": "server/kk_local/public_metrics.py",
@@ -138,13 +148,13 @@
     },
     {
       "path": "server/kk_local/engine.py",
-      "bytes": 12489,
-      "sha256": "9578ba35da45ed30e330d81dc45271a661f236f6cb9cabac36e982853106095e"
+      "bytes": 13111,
+      "sha256": "863220104416f05388c76afc2e03ea41d28e8055f58a88a468a010739aa21b09"
     },
     {
       "path": "server/kk_local/layouts.py",
-      "bytes": 18094,
-      "sha256": "bfd9358fd46b497eff6f8682b152e31f3831e7bf2bf390f4b76fbfc5de0303ef"
+      "bytes": 19352,
+      "sha256": "8f0e02a33cff22fcdccf63ad913c326c50353323bb8cda17288d587e878fb88d"
     },
     {
       "path": "server/kk_local/maps.py",
@@ -173,8 +183,8 @@
     },
     {
       "path": "server/kk_local/rooms.py",
-      "bytes": 12686,
-      "sha256": "dc0f7af2010c8a805fe89f9a9d2dfed158f0233af1cde66fa0277b483b15c7b0"
+      "bytes": 12798,
+      "sha256": "e7d02406a3abcfd4333b6bf4468994393699faa707a2c266704a6854f94c1a9f"
     },
     {
       "path": "server/kk_local/sdo_identity.py",
@@ -423,8 +433,8 @@
     },
     {
       "path": "docs/SERVICE.md",
-      "bytes": 14473,
-      "sha256": "0ecab414ce88f6620b757715c70a1c6aa0b3e7ce2122c4cb890fe6b213094fa8"
+      "bytes": 16657,
+      "sha256": "8616547107dde59161164ef86c14846245ad72cad61464fdc3fbac35fcc51a69"
     },
     {
       "path": "docs/CLIENT_COMPATIBILITY.md",
@@ -523,8 +533,8 @@
     },
     {
       "path": "server/kk_local/battle_pairs.py",
-      "bytes": 4305,
-      "sha256": "a1c7fbe8b5fdcd129d0791ea0d5f222e6694df1ff858931c388cd4e68ccd1200"
+      "bytes": 4366,
+      "sha256": "bc81df609b2e931fcefa6258c53785459d1b39da0b6dbf207d2b2cf44cc09017"
     },
     {
       "path": "server/kk_local/battle_receipts.py",
@@ -533,8 +543,8 @@
     },
     {
       "path": "server/kk_local/battle_relay.py",
-      "bytes": 12398,
-      "sha256": "eb31d58b1beef10edd916f1f5273cedab1578ff0ec2b4e1d1b38e841c650b845"
+      "bytes": 15780,
+      "sha256": "2ec24ffadff7d828583efce3f5b82040a8bc6ab587b32815d85fd4f2767fca15"
     },
     {
       "path": "server/kk_local/battle_results.py",
@@ -543,8 +553,8 @@
     },
     {
       "path": "server/kk_local/combat_catalog.py",
-      "bytes": 3391,
-      "sha256": "4179dac1281a6c58b0b770676e9862e037bb2ca4f735c91852b8894961791e1c"
+      "bytes": 4100,
+      "sha256": "599c0a136143a2836257a09726507c9558bc35d2d56cd4c39fa0a2fd494d70f5"
     },
     {
       "path": "server/kk_local/foster_catalog.py",
@@ -598,8 +608,8 @@
     },
     {
       "path": "server/kk_local/native_relay.py",
-      "bytes": 5458,
-      "sha256": "943086a9b05c939cf81d94e0f68ac68b08bd0e1ac7eb4c4e06592ddce5db38d3"
+      "bytes": 6150,
+      "sha256": "e92a036a01d3579a4e4be6d8a42b655f1134816db66710f3e9345f00a425fc32"
     },
     {
       "path": "server/kk_local/native_service.py",
@@ -613,8 +623,8 @@
     },
     {
       "path": "server/kk_local/pve.py",
-      "bytes": 10209,
-      "sha256": "120aee8ebaeeaf2b187f10bfcde41abf56fa991f6b4caadb58ed88d3107ccf5c"
+      "bytes": 10947,
+      "sha256": "8a89b68122349743478b00d187bae4b3b81cbe0f1ee4a50fbce743491ad779dd"
     },
     {
       "path": "server/kk_local/quest_rewards.py",
@@ -633,13 +643,13 @@
     },
     {
       "path": "server/kk_local/room_flow.py",
-      "bytes": 13261,
-      "sha256": "3b10cc67c1234544b68b417cc525fb156631c7290483ccf96205d8b5876bce6e"
+      "bytes": 13335,
+      "sha256": "a30ab00821ef78c5fbc58e7535c324efc7b0226edc981d29862d97ab3f2e04d0"
     },
     {
       "path": "server/kk_local/room_lifecycle.py",
-      "bytes": 10120,
-      "sha256": "79a4956606fe944ebb8ed1d9012713132c227a7298ad68c4b3098e946ac0e2ba"
+      "bytes": 10163,
+      "sha256": "835675be5d784a6315aeb2ea7b32034eeb867cb0f7ac58e46e937b6da40ca2e0"
     },
     {
       "path": "server/kk_local/room_requests.py",
@@ -708,13 +718,13 @@
     },
     {
       "path": "server/kk_local/app/cli.py",
-      "bytes": 7535,
-      "sha256": "184c5c3f25774662dd8cb200788043ead633bfac3be12d364caa7463b8edbf7c"
+      "bytes": 7664,
+      "sha256": "18d2f29d1f7e1c87a5d5a134b840753392326626bee6245a4ec9b864837a3634"
     },
     {
       "path": "server/kk_local/app/configuration.py",
-      "bytes": 8344,
-      "sha256": "5b86bb23a94d674429b67228587cd5b58389d92727373129b53fcf713199b0c7"
+      "bytes": 8536,
+      "sha256": "2b41c30d92d0930709e5614920a9b39bde089589b51a868450f319f80e9469a7"
     },
     {
       "path": "server/kk_local/app/features.py",
