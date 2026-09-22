@@ -4,7 +4,6 @@ SDK cryptography is a compatibility constraint, not modern network security.
 Only loopback, exact kernel-attributed SDK/game process pairs are admitted.
 Original-window end-to-end qualification is independent from unit tests.
 """
-import argparse
 import asyncio
 from collections import deque
 import contextlib
@@ -132,40 +131,34 @@ class SdoHttpServer:
 
 
 async def run(args):
+    from .app.lifecycle import EventLog,own_services,start_services
     root=Path(args.client_root).resolve(strict=True);runtime=Path(args.runtime).resolve();runtime.mkdir(exist_ok=False)
     map_catalog=MapCatalog.from_client(root)
     (runtime/'map-admission.json').write_text(json.dumps(map_catalog.summary(),ensure_ascii=False,indent=2),encoding='utf8')
     key=rsa.generate_private_key(public_exponent=3,key_size=1024)
     public=key.public_key().public_numbers()
     with (runtime/'public-key.bin').open('xb') as f:f.write(struct.pack('<H',1024)+public.n.to_bytes(128,'big')+public.e.to_bytes(128,'big'))
-    store=Store(args.database);game_identity=WindowsNativeVerifier(root/'gfxz-lab.exe')
-    auth=AuthManager(store,[dict(id=1,name='Local',host='127.0.0.1',game_port=args.game_port)],native_verifier=game_identity)
-    logfile=(runtime/'events.jsonl').open('x',encoding='utf8',buffering=1)
-    def emit(row):
-        try:logfile.write(json.dumps({'timestamp':time.time(),**row})+'\n')
-        except OSError:pass
-    verifier=WindowsSdkVerifier(root/'sdo/sdologin/sdologin.exe',game_identity)
-    http=SdoHttpServer(auth,key,verifier,port=args.http_port,event_sink=emit)
-    api=AuthServer(auth,port=args.api_port,event_sink=emit)
-    game=Service(store,ReadyFile(root/'kk-roleprop-ready.txt'),native_auth=auth,login_port=args.login_port,
-                 game_port=args.game_port,p2p_port=args.game_port,event_sink=emit,map_catalog=map_catalog,
-                 query_probe=getattr(args,'query_probe',False))
-    try:
-        await game.start();await http.start();await api.start()
+    async with contextlib.AsyncExitStack() as stack:
+        store=Store(args.database);stack.callback(store.close)
+        emit=stack.enter_context(EventLog(runtime/'events.jsonl',exclusive=True,timestamps=True,ensure_ascii=True))
+        game_identity=WindowsNativeVerifier(root/'gfxz-lab.exe')
+        auth=AuthManager(store,[dict(id=1,name='Local',host='127.0.0.1',game_port=args.game_port)],native_verifier=game_identity)
+        stack.callback(auth.close)
+        verifier=WindowsSdkVerifier(root/'sdo/sdologin/sdologin.exe',game_identity)
+        http=SdoHttpServer(auth,key,verifier,port=args.http_port,event_sink=emit)
+        api=AuthServer(auth,port=args.api_port,event_sink=emit)
+        game=Service(store,ReadyFile(root/'kk-roleprop-ready.txt'),native_auth=auth,login_port=args.login_port,
+                     game_port=args.game_port,p2p_port=args.game_port,event_sink=emit,map_catalog=map_catalog,
+                     query_probe=getattr(args,'query_probe',False))
+        own_services(stack,[http,api,game])
+        await start_services([game,http,api])
         (runtime/'ready.json').write_text(json.dumps(dict(status='ready',http_port=http.port,api_port=api.port,login_port=game.login_port,game_port=game.game_port,private_key_persisted=False)),encoding='utf8')
         await asyncio.Event().wait()
-    finally:
-        await http.close();await api.close();await game.close();auth.close();store.close();logfile.close()
 
 
-def main():
-    p=argparse.ArgumentParser();p.add_argument('--client-root',required=True);p.add_argument('--runtime',required=True);p.add_argument('--database',required=True)
-    p.add_argument('--query-probe',action='store_true',help='Opt-in bounded menu metadata; no raw credentials or chat bodies')
-    p.add_argument('--http-port',type=int,default=18082);p.add_argument('--api-port',type=int,default=17999);p.add_argument('--login-port',type=int,default=18000);p.add_argument('--game-port',type=int,default=18001)
-    args=p.parse_args();ports=[args.http_port,args.api_port,args.login_port,args.game_port]
-    if len(set(ports))!=4 or not all(1<=x<=65535 for x in ports):p.error('distinct valid ports required')
-    try:asyncio.run(run(args))
-    except KeyboardInterrupt:pass
+def main(argv=None):
+    from .app.cli import run_mode
+    run_mode('sdo',argv,run)
 
 
 if __name__=='__main__':main()

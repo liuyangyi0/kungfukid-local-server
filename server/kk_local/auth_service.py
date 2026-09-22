@@ -3,7 +3,6 @@
 Wire: BE u32 length, UTF-8 JSON. One request per connection. It is deliberately
 not HTTP and cannot be submitted by an ordinary cross-origin web form.
 """
-import argparse
 import asyncio
 from collections import deque
 import contextlib
@@ -19,6 +18,7 @@ from .store import Store
 
 
 class AuthServer:
+    event_operations=('register','login','regions','select_region','bind_client','status','logout')
     def __init__(self, manager, *, port=7999, event_sink=None):
         self.manager=manager
         self.port=port
@@ -88,7 +88,7 @@ class AuthServer:
                 request=json.loads(raw.decode('utf-8'))
             except (UnicodeError,ValueError,RecursionError):
                 raise AuthError('invalid_request') from None
-            if isinstance(request,dict) and request.get('operation') in ('register','login','regions','select_region','bind_client','status','logout'):
+            if isinstance(request,dict) and request.get('operation') in self.event_operations:
                 operation=request['operation']
             try:
                 result=await self.dispatch(request)
@@ -115,46 +115,30 @@ class AuthServer:
 
 
 async def run(args):
+    from .app.lifecycle import EventLog,own_services,start_services
     root=Path(args.client_root).resolve(strict=True)
     from .maps import MapCatalog
     map_catalog=MapCatalog.from_client(root)
     verifier=WindowsNativeVerifier(root/'gfxz-lab.exe')
-    store=Store(args.database)
-    # Do not seed an automatically accessible KKLocal account. Existing accounts
-    # stay intact and need an explicitly provisioned password.
-    manager=AuthManager(store,[dict(id=1,name='本地区服',host='127.0.0.1',game_port=args.game_port)],native_verifier=verifier)
-    Path(args.events).parent.mkdir(parents=True,exist_ok=True)
-    log=open(args.events,'a',encoding='utf-8',buffering=1)
-    def emit(row):
-        log.write(json.dumps({'timestamp':time.time(),**row},ensure_ascii=False)+'\n')
-    game=Service(store,ReadyFile(args.role_ready_file),native_auth=manager,
-                 login_port=args.login_port,game_port=args.game_port,p2p_port=args.game_port,event_sink=emit,map_catalog=map_catalog)
-    auth=AuthServer(manager,port=args.auth_port,event_sink=emit)
-    try:
-        await game.start()
-        await auth.start()
+    async with contextlib.AsyncExitStack() as stack:
+        store=Store(args.database);stack.callback(store.close)
+        emit=stack.enter_context(EventLog(args.events,timestamps=True))
+        #No implicit KKLocal account or password bypass in authenticated mode.
+        manager=AuthManager(store,[dict(id=1,name='本地区服',host='127.0.0.1',game_port=args.game_port)],native_verifier=verifier)
+        stack.callback(manager.close)
+        game=Service(store,ReadyFile(args.role_ready_file),native_auth=manager,
+                     login_port=args.login_port,game_port=args.game_port,p2p_port=args.game_port,event_sink=emit,map_catalog=map_catalog)
+        auth=AuthServer(manager,port=args.auth_port,event_sink=emit)
+        own_services(stack,[auth,game])
+        await start_services([game,auth])
         print(json.dumps(dict(status='listening',authentication='password-and-local-process-binding',
                               auth_port=auth.port,login_port=game.login_port,game_port=game.game_port)),flush=True)
         await asyncio.Event().wait()
-    finally:
-        await auth.close(); await game.close()
-        manager.close(); store.close(); log.close()
 
 
-def main():
-    parser=argparse.ArgumentParser(description='Local password authentication; does not contact SDO')
-    parser.add_argument('--database',required=True)
-    parser.add_argument('--client-root',required=True)
-    parser.add_argument('--role-ready-file',required=True)
-    parser.add_argument('--events',required=True)
-    parser.add_argument('--auth-port',type=int,default=7999)
-    parser.add_argument('--login-port',type=int,default=8000)
-    parser.add_argument('--game-port',type=int,default=8001)
-    args=parser.parse_args()
-    if len({args.auth_port,args.login_port,args.game_port})!=3 or not all(1<=p<=65535 for p in (args.auth_port,args.login_port,args.game_port)):
-        parser.error('three distinct valid TCP ports required')
-    try: asyncio.run(run(args))
-    except KeyboardInterrupt: pass
+def main(argv=None):
+    from .app.cli import run_mode
+    run_mode('auth',argv,run)
 
 
-if __name__=='__main__': main()
+if __name__=='__main__':main()

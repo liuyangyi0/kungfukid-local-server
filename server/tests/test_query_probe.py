@@ -21,6 +21,8 @@ class QueryProbeTests(unittest.TestCase):
             self.assertEqual(events[-1]['fields'],{'item_id':123})
             s.record_menu_query(c,Message(9070,b'\x19\x03'))
             self.assertEqual(events[-1]['fields'],{'category_code':25,'variant_code':3})
+            s.record_menu_query(c,Message(2260,bytes((2,1,136))))
+            self.assertEqual(events[-1]['fields'],{'page_u8':2,'room_filter_u8':1,'mode_filter_u8':136})
             s.record_menu_query(c,Message(20360,struct.pack('<QI',1001,7)))
             self.assertEqual(events[-1]['fields'],{'self_query':True,'selector_u32':7})
             s.record_menu_query(c,Message(9999,b'private-text-not-a-query'))

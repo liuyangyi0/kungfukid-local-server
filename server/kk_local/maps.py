@@ -53,7 +53,7 @@ class ClientConfig:
             if key in self.entries:raise ValueError('duplicate_config_path')
             self.entries[key]=index
 
-    def xml(self, name):
+    def read(self, name):
         from spf2_extract import decode_not_xor_zlib, RECOVERED_CONFIG_KEY
         key=name.replace('\\','/').lstrip('/').casefold()
         matches=[i for p,i in self.entries.items() if p==key or p=='data/config/'+key]
@@ -62,8 +62,13 @@ class ClientConfig:
         if not (64<=offset and size>=4 and offset+size+4<=self.tree):raise ValueError('map_config_bounds')
         if struct.unpack_from('<I',self.data,offset)[0]!=0x2200:raise ValueError('map_config_flags')
         raw=decode_not_xor_zlib(self.data[offset+4:offset+size+4],RECOVERED_CONFIG_KEY)
-        if len(raw)>8*1024*1024 or b'<!DOCTYPE' in raw.upper():raise ValueError('map_xml_bounds')
+        if len(raw)>8*1024*1024:raise ValueError('config_payload_bounds')
         self.consumed.add(key)
+        return raw
+
+    def xml(self,name):
+        raw=self.read(name)
+        if b'<!DOCTYPE' in raw.upper():raise ValueError('map_xml_bounds')
         return ET.fromstring(raw.decode('gb18030'))
 
 
@@ -84,6 +89,11 @@ class MapCatalog:
         self.allowed={int(mode):frozenset(ids) for mode,ids in allowed.items()}
         self.groups={int(ident):frozenset(ids) for ident,ids in (groups or {}).items()}
         self.chooser=chooser;self.source=source or {}
+        self.stage_plans={}  # enabled only by the explicit, same-install stage adapter
+        self.foster_plans={}
+        self.tutorial_enabled=False
+        self.title_levels=frozenset()
+        self.quest_templates={}
 
     @classmethod
     def from_client(cls, client_root, *, lobby_level=4):
@@ -130,9 +140,20 @@ class MapCatalog:
         # local service; it is registered but omitted from the level4 menus.
         if 804 in definitions:
             for mode in (0,1,2,3,5):allowed.setdefault(mode,set()).add(804)
-        return cls(definitions,allowed,groups=groups,source=dict(package=str(config.path),entries=config.count,
+        result=cls(definitions,allowed,groups=groups,source=dict(package=str(config.path),entries=config.count,
             primary_backup_equal=config.primary_backup_equal,decoded_map_configs=len(config.consumed),
             lobby_level=lobby_level,water4_compatibility_override=True))
+        #Same package, read once; absence does not disable unrelated map support.
+        try:
+            titles=config.xml('roletitle.xml')
+            if titles.tag!='TitleSetting':raise ValueError('title table shape')
+            levels=[int(row.attrib['Level']) for row in titles if row.tag=='TitleLevel']
+            if len(levels)!=len(titles) or len(set(levels))!=len(levels) or any(not 0<=n<=255 for n in levels):raise ValueError('title table bounds')
+            result.title_levels=frozenset(levels)
+        except (ValueError,KeyError,ET.ParseError):pass
+        from .quests import from_config as quest_templates
+        result.quest_templates=quest_templates(config)
+        return result
 
     def mode_ids(self, mode):
         ids=set()
@@ -144,6 +165,10 @@ class MapCatalog:
             not self.maps[i].missing and self.maps[i].capacity>=capacity))
 
     def resolve(self, mode, capacity, chosen, suggested):
+        if mode==4:
+            if not self.tutorial_enabled or capacity!=1 or (chosen,suggested)!=(1201,1201):raise MapAdmissionError('unsupported_room_map')
+            if chosen not in self.maps or self.maps[chosen].missing:raise MapAdmissionError('map_resources_missing')
+            return chosen,chosen
         if capacity not in (2,4,6,8):raise MapAdmissionError('unsupported_room_capacity')
         if chosen in (0,-1) or chosen in self.groups:
             pool=self.eligible(mode,capacity)

@@ -1,0 +1,14 @@
+{
+  "schema": "kk-server-settings-v1",
+  "mode": "sdo",
+  "options": {
+    "client_root": "../client",
+    "database": "../state/local.sqlite3",
+    "runtime": "../runs/replace-with-a-new-run-directory",
+    "http_port": 18082,
+    "api_port": 17999,
+    "login_port": 18000,
+    "game_port": 18001,
+    "query_probe": false
+  }
+}

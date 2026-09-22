@@ -10,7 +10,6 @@ import hashlib
 import hmac
 import re
 import secrets
-import sqlite3
 import time
 
 
@@ -55,7 +54,6 @@ def token_digest(token):
 class AuthManager:
     def __init__(self, store, regions, *, clock=time.time, native_verifier=None):
         self.store=store
-        self.db=store.db
         self.clock=clock
         self.native_verifier=native_verifier
         self.native_bindings={}
@@ -70,41 +68,31 @@ class AuthManager:
             self.regions[region['id']]=dict(region)
         if not self.regions or len(self.regions)>16:
             raise AuthError('invalid_local_region_configuration')
+        self.records=store.authentication
         self.pool=ThreadPoolExecutor(max_workers=2,thread_name_prefix='kk-password')
-        self.db.executescript('''
-          CREATE TABLE IF NOT EXISTS auth_credentials(
-            uid INTEGER PRIMARY KEY REFERENCES accounts(uid),
-            normalized_account TEXT NOT NULL UNIQUE,
-            algorithm TEXT NOT NULL, salt BLOB NOT NULL CHECK(length(salt)=16),
-            digest BLOB NOT NULL CHECK(length(digest)=32));
-          CREATE TABLE IF NOT EXISTS auth_sessions(
-            digest BLOB PRIMARY KEY CHECK(length(digest)=32),
-            uid INTEGER NOT NULL REFERENCES auth_credentials(uid),
-            created INTEGER NOT NULL, expires INTEGER NOT NULL);
-          CREATE TABLE IF NOT EXISTS auth_tickets(
-            digest BLOB PRIMARY KEY CHECK(length(digest)=32),
-            session_digest BLOB NOT NULL REFERENCES auth_sessions(digest) ON DELETE CASCADE,
-            uid INTEGER NOT NULL REFERENCES auth_credentials(uid),
-            region INTEGER NOT NULL, expires INTEGER NOT NULL);
-          CREATE TABLE IF NOT EXISTS auth_failures(
-            account TEXT PRIMARY KEY, failures INTEGER NOT NULL,
-            blocked_until INTEGER NOT NULL, updated INTEGER NOT NULL);
-        ''')
 
     async def _hash(self, encoded, salt):
         return await asyncio.get_running_loop().run_in_executor(self.pool,password_digest,encoded,salt)
+
+    def _encode_password(self, password):
+        return password_bytes(password)
+
+    async def _prepare_additional_verifier(self, encoded):
+        """Optional credential format; default local authentication is unchanged."""
+        return None
+
+    def _save_additional_verifier(self, uid, name, verifier):
+        """Called only inside the same successful credential/session transaction."""
 
     def close(self):
         self.pool.shutdown(wait=True,cancel_futures=True)
 
     def _cleanup(self, now):
-        self.db.execute('DELETE FROM auth_sessions WHERE expires<=?',(now,))
-        self.db.execute('DELETE FROM auth_tickets WHERE expires<=?',(now,))
-        self.db.execute('DELETE FROM auth_failures WHERE updated<?',(now-3600,))
+        self.records.cleanup(now,now-3600)
 
     async def register(self, account, password, nickname=None):
         name=normalize_account(account)
-        encoded=password_bytes(password)
+        encoded=self._encode_password(password)
         nickname=account if nickname is None else nickname
         try:
             valid=isinstance(nickname,str) and 1<=len(nickname.encode('gbk'))<=20 and '\0' not in nickname
@@ -114,74 +102,76 @@ class AuthManager:
             raise AuthError('invalid_nickname')
         salt=secrets.token_bytes(16)
         digest=await self._hash(encoded,salt)
-        self.db.execute('BEGIN IMMEDIATE')
-        try:
+        additional=await self._prepare_additional_verifier(encoded)
+        with self.store.transaction('nested registration transaction'):
             # Existing no-password fixture accounts are reserved, not claimable
             # through public registration. Local administration is explicit.
-            if self.db.execute('SELECT 1 FROM accounts WHERE account=? COLLATE NOCASE',(name,)).fetchone():
+            if self.store.profiles.account_uids(name):
                 raise AuthError('account_unavailable')
-            uid=max(1000,self.db.execute('SELECT COALESCE(MAX(uid),0) FROM accounts').fetchone()[0])+1
+            uid=max(1000,self.store.profiles.maximum_uid())+1
             if uid>0x7fffffffffffffff:
                 raise AuthError('account_capacity_reached')
             self.store.provision_local(uid,name,nickname)
-            self.db.execute('INSERT INTO auth_credentials VALUES(?,?,?,?,?)',(uid,name,ALGORITHM,salt,digest))
-            self.db.commit()
+            self.records.insert_credential(uid,name,ALGORITHM,salt,digest)
+            self._save_additional_verifier(uid,name,additional)
             return dict(uid=uid,account=name,nickname=nickname)
-        except BaseException:
-            self.db.rollback()
-            raise
 
     async def login(self, account, password):
         name=normalize_account(account)
-        encoded=password_bytes(password)
+        encoded=self._encode_password(password)
+        return await self._login_encoded(name,encoded)
+
+    async def _login_encoded(self, name, encoded, *, credential_reader=None, upgrade=True):
+        """Shared lockout, CAS and session policy for admitted credential formats."""
+        read=credential_reader or self.records.credential
         now=int(self.clock())
-        with self.db:
+        with self.store.transaction('nested authentication cleanup',immediate=False):
             self._cleanup(now)
-        blocked=self.db.execute('SELECT blocked_until FROM auth_failures WHERE account=?',(name,)).fetchone()
-        if blocked and blocked[0]>now:
+        blocked=self.records.failure(name)
+        if blocked and blocked[1]>now:
             raise AuthError('rate_limited')
-        row=self.db.execute('SELECT uid,algorithm,salt,digest FROM auth_credentials WHERE normalized_account=?',(name,)).fetchone()
+        row=read(name)
         salt=row[2] if row and row[1]==ALGORITHM else bytes(16)
         expected=row[3] if row and row[1]==ALGORITHM else bytes(32)
         actual=await self._hash(encoded,salt)
         valid=hmac.compare_digest(actual,expected) and row is not None and row[1]==ALGORITHM
+        additional=await self._prepare_additional_verifier(encoded) if valid and upgrade else None
         now=int(self.clock())
-        self.db.execute('BEGIN IMMEDIATE')
-        try:
+        result=None
+        with self.store.transaction('nested login transaction'):
             # Do not grant a stale password after a concurrent local reset.
-            current=self.db.execute('SELECT uid,algorithm,salt,digest FROM auth_credentials WHERE normalized_account=?',(name,)).fetchone()
+            current=read(name)
             valid=valid and current==row
-            blocked=self.db.execute('SELECT blocked_until FROM auth_failures WHERE account=?',(name,)).fetchone()
-            if blocked and blocked[0]>now:
+            blocked=self.records.failure(name)
+            if blocked and blocked[1]>now:
                 raise AuthError('rate_limited')
             if not valid:
-                old=self.db.execute('SELECT failures FROM auth_failures WHERE account=?',(name,)).fetchone()
+                old=self.records.failure(name)
                 failures=min(5,(old[0] if old else 0)+1)
-                if old or self.db.execute('SELECT COUNT(*) FROM auth_failures').fetchone()[0]<10000:
-                    self.db.execute('INSERT OR REPLACE INTO auth_failures VALUES(?,?,?,?)',
-                                    (name,failures,now+30 if failures>=5 else 0,now))
-                self.db.commit()
-                raise AuthError('invalid_credentials')
-            uid=row[0]
-            self._cleanup(now)
-            self.db.execute('DELETE FROM auth_failures WHERE account=?',(name,))
-            # Bound sessions per account. Tokens from the oldest sessions and
-            # their outstanding region tickets are revoked together.
-            old=self.db.execute('SELECT digest FROM auth_sessions WHERE uid=? ORDER BY created DESC,rowid DESC',(uid,)).fetchall()
-            for item in old[2:]:
-                self.db.execute('DELETE FROM auth_sessions WHERE digest=?',item)
-            token=secrets.token_hex(32)
-            self.db.execute('INSERT INTO auth_sessions VALUES(?,?,?,?)',(token_digest(token),uid,now,now+SESSION_SECONDS))
-            self.db.commit()
-            return dict(uid=uid,account=name,session=token,expires_at=now+SESSION_SECONDS)
-        except BaseException:
-            if self.db.in_transaction:
-                self.db.rollback()
-            raise
+                if old or self.records.failure_count()<10000:
+                    self.records.record_failure(name,failures,now+30 if failures>=5 else 0,now)
+            else:
+                uid=row[0]
+                if additional is not None:
+                    self._save_additional_verifier(uid,name,additional)
+                self._cleanup(now)
+                self.records.clear_failure(name)
+                # Keep the two newest existing sessions, then add the third.
+                # Removing older sessions also revokes their outstanding tickets.
+                for item in self.records.session_digests(uid)[2:]:
+                    self.records.remove_session(item[0])
+                token=secrets.token_hex(32)
+                self.records.insert_session(token_digest(token),uid,now,now+SESSION_SECONDS)
+                result=dict(uid=uid,account=name,session=token,expires_at=now+SESSION_SECONDS)
+        # Failed passwords must commit their rate-limit record before returning
+        # the public error; raising inside the transaction would undo it.
+        if result is None:
+            raise AuthError('invalid_credentials')
+        return result
 
     def _session(self, token):
         digest=token_digest(token)
-        row=self.db.execute('SELECT uid,expires FROM auth_sessions WHERE digest=?',(digest,)).fetchone()
+        row=self.records.session(digest)
         if not row or row[1]<=int(self.clock()):
             raise AuthError('invalid_session')
         return digest,row[0]
@@ -193,37 +183,26 @@ class AuthManager:
     def select_region(self, token, region_id):
         if type(region_id) is not int or region_id not in self.regions:
             raise AuthError('invalid_region')
-        self.db.execute('BEGIN IMMEDIATE')
-        try:
+        with self.store.transaction('nested region selection transaction'):
             digest,uid=self._session(token)
             now=int(self.clock())
-            self.db.execute('DELETE FROM auth_tickets WHERE session_digest=?',(digest,))
+            self.records.remove_session_tickets(digest)
             ticket=secrets.token_hex(32)
-            self.db.execute('INSERT INTO auth_tickets VALUES(?,?,?,?,?)',
-                            (token_digest(ticket),digest,uid,region_id,now+TICKET_SECONDS))
-            self.db.commit()
+            self.records.insert_ticket(token_digest(ticket),digest,uid,region_id,now+TICKET_SECONDS)
             return dict(uid=uid,region=dict(self.regions[region_id]),ticket=ticket,expires_at=now+TICKET_SECONDS)
-        except BaseException:
-            self.db.rollback()
-            raise
 
     def consume_ticket(self, ticket, uid, region_id):
         """For a trusted game gateway, not a publicly callable API operation."""
         if type(uid) is not int or type(region_id) is not int:
             raise AuthError('invalid_ticket')
         digest=token_digest(ticket)
-        self.db.execute('BEGIN IMMEDIATE')
-        try:
-            row=self.db.execute('SELECT t.uid,t.region,t.expires,s.expires FROM auth_tickets t JOIN auth_sessions s ON s.digest=t.session_digest WHERE t.digest=?',(digest,)).fetchone()
+        with self.store.transaction('nested ticket consumption transaction'):
+            row=self.records.ticket(digest)
             now=int(self.clock())
             if not row or row[:2]!=(uid,region_id) or min(row[2:])<=now:
                 raise AuthError('invalid_ticket')
-            self.db.execute('DELETE FROM auth_tickets WHERE digest=?',(digest,))
-            self.db.commit()
+            self.records.remove_ticket(digest)
             return uid
-        except BaseException:
-            self.db.rollback()
-            raise
 
     def bind_native_client(self, ticket, uid, region_id, pid):
         if self.native_verifier is None:
@@ -243,7 +222,7 @@ class AuthManager:
         if len(self.native_bindings)>=16:
             raise AuthError('native_binding_limit')
         digest=token_digest(ticket)
-        row=self.db.execute('SELECT session_digest FROM auth_tickets WHERE digest=?',(digest,)).fetchone()
+        row=self.records.ticket_session(digest)
         self.consume_ticket(ticket,uid,region_id)
         self.native_bindings[pid]=dict(identity=identity,uid=uid,region=region_id,
             session_digest=row[0],expires=int(self.clock())+240,stage='bound',lobby_ready=False)
@@ -254,8 +233,8 @@ class AuthManager:
         if (not row or row['identity']!=identity or row['region']!=region_id or
                 (row['stage']!='game' and row['expires']<=int(self.clock()))):
             raise AuthError('native_session_required')
-        session=self.db.execute('SELECT expires FROM auth_sessions WHERE digest=?',(row['session_digest'],)).fetchone()
-        if not session or session[0]<=int(self.clock()):
+        session=self.records.session(row['session_digest'])
+        if not session or session[1]<=int(self.clock()):
             raise AuthError('native_session_expired')
         return row
 
@@ -278,20 +257,22 @@ class AuthManager:
 
     def logout(self, token):
         digest=token_digest(token)
-        with self.db:
-            self.db.execute('DELETE FROM auth_sessions WHERE digest=?',(digest,))
+        with self.store.transaction('nested logout transaction',immediate=False):
+            self.records.remove_session(digest)
 
     async def set_local_password(self, account, password):
         """Local administrator-only recovery; never exposed through the network."""
         name=normalize_account(account)
-        row=self.db.execute('SELECT uid FROM accounts WHERE account=? COLLATE NOCASE',(name,)).fetchall()
+        row=self.store.profiles.account_uids(name)
         if len(row)!=1:
             raise AuthError('local_account_missing_or_ambiguous')
         salt=secrets.token_bytes(16)
-        digest=await self._hash(password_bytes(password),salt)
+        encoded=self._encode_password(password)
+        digest=await self._hash(encoded,salt)
+        additional=await self._prepare_additional_verifier(encoded)
         uid=row[0][0]
-        with self.db:
-            self.db.execute('DELETE FROM auth_sessions WHERE uid=?',(uid,))
-            self.db.execute('INSERT INTO auth_credentials VALUES(?,?,?,?,?) ON CONFLICT(uid) DO UPDATE SET normalized_account=excluded.normalized_account,algorithm=excluded.algorithm,salt=excluded.salt,digest=excluded.digest',
-                            (uid,name,ALGORITHM,salt,digest))
-            self.db.execute('DELETE FROM auth_failures WHERE account=?',(name,))
+        with self.store.transaction('nested password reset transaction',immediate=False):
+            self.records.remove_account_sessions(uid)
+            self.records.replace_credential(uid,name,ALGORITHM,salt,digest)
+            self._save_additional_verifier(uid,name,additional)
+            self.records.clear_failure(name)

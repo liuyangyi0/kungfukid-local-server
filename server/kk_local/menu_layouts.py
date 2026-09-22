@@ -81,6 +81,25 @@ def decode_menu_request(ident, data):
     if ident == 6000:
         size(data,4)
         return dict(profile_selector=u32(data))
+    if ident==21410:
+        size(data,0)
+        return {}
+    if ident==21412:
+        size(data,4)
+        return dict(instance=u32(data))
+    if ident in (6050,6080):
+        size(data,14)
+        #831400 does not initialize the first eight bytes. Neither the prefix
+        #nor the process-local context authenticates an account.
+        return dict(quest_id=struct.unpack_from('<H',data,12)[0],context=u32(data,8))
+    if ident in (6051,6081,6311,6052,6082,6312):
+        size(data,19)
+        expected={6051:2,6052:2,6081:1,6082:1,6311:3,6312:3}[ident]
+        if data[2]!=expected or not struct.unpack_from('<H',data)[0]:
+            raise ProtocolError('quest action state/key mismatch')
+        #The twelve-byte tail is uninitialized in the native sender. Do not
+        #treat it as a receipt, nonce, reward, or another player's identity.
+        return dict(quest_id=struct.unpack_from('<H',data)[0],state=data[2],context=u32(data,3))
     if ident in (1300,1400,1540,6001,6002,6003,6225,20563,20565,20546):
         size(data,0)
         return {}
@@ -95,6 +114,14 @@ def rewards(data):
 
 def decode_menu_response(ident, data):
     data=freeze_payload(data)
+    if ident==21411:
+        if not data or len(data)%21:raise ProtocolError('weapon level table stride')
+        return dict(records=tuple(dict(level=u32(data,i),score_threshold=u32(data,i+4),gold=u32(data,i+8),
+            odds=u32(data,i+12),unknown_16=data[i+16],bonus_percent=u32(data,i+17)) for i in range(0,len(data),21)))
+    if ident==21413:
+        if not data or len(data)%22:raise ProtocolError('weapon upgrade result stride')
+        #A28E00 accepts multiples;861190 consumes the first record only.
+        return dict(success=data[0]!=0,instance=u32(data,9),opaque_tail=data[22:])
     if ident==20547:
         size(data,4)
         return dict(profile_offset=352,value_u32=u32(data))
@@ -192,8 +219,11 @@ def decode_menu_response(ident, data):
         if len(data)%4: raise ProtocolError('partial quest ID')
         return dict(quest_ids=struct.unpack('<'+'I'*(len(data)//4),data))
     if ident == 6020:
-        # Client floors len/123; strict parser refuses trailing partial records.
-        if len(data)%123: raise ProtocolError('partial quest record')
+        #821BD0 requires >=7 even when floor(len/123)==0, then refreshes UI.
+        #Our encoder uses one canonical zero sentinel; arbitrary tails remain
+        #rejected rather than copying the native partial-record tolerance.
+        if data==bytes(7):return dict(records=())
+        if not data or len(data)%123: raise ProtocolError('partial quest record')
         return dict(records=tuple(dict(quest_id=struct.unpack_from('<H',data,i+4)[0],
                                        raw=data[i:i+123]) for i in range(0,len(data),123)))
     if ident in (6031,6061,6091,6301,6032,6062,6092,6302,6033,6063,6093,6303):

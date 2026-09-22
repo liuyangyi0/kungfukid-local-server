@@ -54,8 +54,10 @@ class MenuQueryTests(unittest.TestCase):
                 self.assertEqual(e.handle(c,Message(20360,struct.pack('<QI',1001,0))),[packets.no_local_ranked_season()])
             self.assertEqual(e.handle(c,Message(20360,struct.pack('<QI',1002,0))),[])
             self.assertEqual(s.snapshot(1001),before)
-            for m in (Message(9070,b'x'),Message(20360,b'x'),Message(1300,b'x'),Message(1400,b'x')):
+            for m in (Message(9070,b'x'),Message(20360,b'x'),Message(1300,b'x')):
                 with self.assertRaises(ProtocolError):e.handle(c,m)
+            self.assertNotIn(1410,[m.id for m in e.handle(c,Message(1400,b'x'))])
+            self.assertEqual(s.snapshot(1001),before)
             c.phase=Phase.BATTLE
             self.assertEqual(e.handle(c,Message(9070,b'\x19\0')),[])
             self.assertEqual(e.handle(c,Message(1300)),[])

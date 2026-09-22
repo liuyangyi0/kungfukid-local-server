@@ -77,7 +77,7 @@ class MapTests(unittest.TestCase):
             hub=RoomHub();a=Engine(store,hub=hub,map_catalog=c);b=Engine(store,hub=hub,map_catalog=c,account_uid=1002)
             ca=lobby(a,1);cb=lobby(b,3)
             a.handle(ca,request(1,0,0))
-            directory=b.handle(cb,Message(2260,bytes(3)))[0]
+            directory=b.handle(cb,Message(2260,bytes((1,1,136))))[0]
             self.assertEqual(struct.unpack_from('<ii',directory.payload,31),(90,90))
             joined=b.handle(cb,Message(3070,struct.pack('<HB11s',1,0,b'')))
             self.assertEqual(struct.unpack_from('<ii',joined[0].payload,12),(90,90))
@@ -88,6 +88,7 @@ class MapTests(unittest.TestCase):
         class Config:
             path=Path('synthetic.spf2');count=3;primary_backup_equal=True;consumed=set()
             def __init__(self,ignored):pass
+            def read(self,name):raise ValueError('optional quest source absent in map fixture')
             def xml(self,name):
                 return ET.fromstring({
                     'mapmgr.xml':'<MapInfo><MapConfig MapId="90" Name="Bridge" MaxPlayer="8" xmlfile="bridge" worldpath="bridge"/><RandomMap MapId="1"><Map MapId="90"/></RandomMap></MapInfo>',

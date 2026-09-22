@@ -26,7 +26,9 @@ class RoomSettingsTests(unittest.TestCase):
             e.handle(c,create_room())
             self.assertEqual(e.handle(c,Message(3200,settings())),[Message(3220,settings())])
             self.assertEqual(e.handle(c,Message(3230,b'\1')),[Message(3250,struct.pack('<QBB',1001,1,0))])
-            self.assertEqual(e.room.entry[11],1)
+            self.assertEqual(e.room.entry[11],0)  # Registry key is unchanged.
+            self.assertEqual(e.room.entry[66],1)  # Local player team in3100.
+            self.assertEqual(e.room.entry[106],1) # Fighter record+10 agrees.
             self.assertEqual(e.handle(c,Message(3230,b'\1')),[])
         finally:s.close()
 

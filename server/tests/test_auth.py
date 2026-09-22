@@ -150,8 +150,19 @@ class AuthTests(unittest.IsolatedAsyncioTestCase):
     async def test_native_cli_composes_logger_and_all_listeners(self):
         # Exercise the real run() composition, not just the two servers alone.
         from server.kk_local.maps import MapCatalog
-        reservation=socket.socket(); reservation.bind(('127.0.0.1',0))
-        game_port=reservation.getsockname()[1]; reservation.close()
+        # This listener uses one port for TCP AND UDP. A TCP-only reservation
+        # does not establish UDP availability (including Windows exclusions).
+        for _ in range(32):
+            with socket.socket(type=socket.SOCK_DGRAM) as udp, socket.socket() as tcp:
+                udp.bind(('127.0.0.1',0))
+                game_port=udp.getsockname()[1]
+                try:
+                    tcp.bind(('127.0.0.1',game_port))
+                except OSError:
+                    continue
+                break
+        else:
+            self.fail('could not reserve a shared TCP/UDP test port')
         root=Path(self.temp.name)
         args=SimpleNamespace(client_root=str(root),database=str(root/'composed.db'),
             events=str(root/'composed.jsonl'),role_ready_file=str(root/'ready.txt'),
@@ -165,14 +176,23 @@ class AuthTests(unittest.IsolatedAsyncioTestCase):
         with patch('server.kk_local.auth_service.WindowsNativeVerifier',return_value=self.verifier), patch.object(AuthServer,'start',observe_start), patch.object(MapCatalog,'from_client',return_value=MapCatalog({},{})) as read_maps:
             task=asyncio.create_task(run_auth_service(args))
             try:
-                await asyncio.wait_for(started.wait(),3)
+                ready=asyncio.create_task(started.wait())
+                try:
+                    done,_=await asyncio.wait((ready,task),timeout=3,return_when=asyncio.FIRST_COMPLETED)
+                    if task in done:
+                        await task  # Surface startup errors, not a misleading readiness timeout.
+                    self.assertIn(ready,done,'authentication listeners did not become ready')
+                finally:
+                    ready.cancel()
+                    await asyncio.gather(ready,return_exceptions=True)
                 self.assertFalse(task.done())
                 read_maps.assert_called_once_with(root)
                 rows=[json.loads(line) for line in Path(args.events).read_text(encoding='utf-8').splitlines()]
                 self.assertTrue(any(r['event']=='listening' and r['game_port']==game_port for r in rows))
             finally:
-                task.cancel()
-                with self.assertRaises(asyncio.CancelledError): await task
+                if not task.done():
+                    task.cancel()
+                    with self.assertRaises(asyncio.CancelledError): await task
 
     async def test_secure_sdk_rejects_unbound_and_accepts_password_selected_identity(self):
         service=Service(self.store,lambda:True,native_auth=self.auth,login_port=0,game_port=0,p2p_port=0)
@@ -215,6 +235,13 @@ class AuthTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await receive(gr)).id,2030)
             gw.write(encode_game(Message(2250,bytes(8)))); await gw.drain(); await asyncio.sleep(.03)
             self.assertTrue(self.auth.native_status(session,123)['lobby_ready'])
+            gw.write(encode_game(Message(2060)));await gw.drain()
+            self.assertEqual((await receive(gr)).id,2070)
+            self.assertEqual(await asyncio.wait_for(gr.read(),3),b'')
+            self.assertFalse(self.auth.native_status(session,123)['lobby_ready'])
+            gr,gw=await asyncio.open_connection('127.0.0.1',service.game_port);writers.append(gw)
+            gw.write(encode_game(hello(2010,1002)));await gw.drain()
+            self.assertEqual((await receive(gr)).id,2030)
             self.auth.logout(session)
             await asyncio.wait_for(gr.read(),3)
         finally:

@@ -12,6 +12,8 @@ from .wire import (GameDecoder, Message, ProtocolError, encode_game, encode_logi
                    read_login, sdp_header, sdp_reply)
 from . import packets
 from .auth import AuthError
+from .lab_network import LabEndpoint
+from .lab_capture import LabCapture
 
 
 class ReadyFile:
@@ -49,9 +51,11 @@ class SdpProtocol(asyncio.DatagramProtocol):
                 raise ProtocolError('SDK authentication has not completed')
             if self.service.native_auth is not None:
                 self.service.authorize_udp(peer)
-            if peer[0] != '127.0.0.1':
-                raise ProtocolError('non-loopback UDP peer')
+            if not self.service.accepts_peer(peer):
+                raise ProtocolError('unqualified UDP peer')
             ident, session, source, dest, body, extra = sdp_header(data)
+            if self.service.lab_capture and engine.game is not None:
+                self.service.lab_capture.record('sdp2p-udp','rx',ident,data,engine.game.phase.value)
             if ident == 1001:
                 if extra or len(body) < 141:
                     raise ProtocolError('SDP2P login length')
@@ -82,6 +86,8 @@ class SdpProtocol(asyncio.DatagramProtocol):
                 lease['expires'] = engine.clock() + 60
                 out = sdp_reply(1014, session, source, socket.inet_aton(peer[0]), peer[1])
             else:
+                if self.service.sdp_router and self.service.sdp_router.handle(self.service,data,peer):
+                    return
                 self.service.event('unsupported_udp', id=ident, size=len(data))
                 return
             self.transport.sendto(out, peer)
@@ -94,8 +100,15 @@ class Service:
     def __init__(self, store, ready, *, host='127.0.0.1', login_port=8000,
                  game_port=8001, p2p_port=8001, offline_adapter=False,
                  event_sink=None, idle_seconds=30, training_rewards=False, account_uid=1001, hub=None,
-                 native_auth=None, native_region_id=1, map_catalog=None, query_probe=False):
-        if host != '127.0.0.1' or not ipaddress.ip_address(host).is_loopback:
+                 native_auth=None, native_region_id=1, map_catalog=None, query_probe=False, lab_endpoint=None,
+                 sdp_router=None):
+        if sdp_router is not None and (lab_endpoint is None or getattr(sdp_router,'hub',None) is not hub):
+            raise ValueError('P2P router requires the explicit host-only lab hub')
+        if lab_endpoint is not None:
+            if (not isinstance(lab_endpoint,LabEndpoint) or host!=lab_endpoint.host
+                    or not offline_adapter or native_auth is not None or hub is None):
+                raise ValueError('Host-only lab requires explicit offline adapter, peer and shared hub')
+        elif host != '127.0.0.1' or not ipaddress.ip_address(host).is_loopback:
             raise ValueError('Only IPv4 loopback is supported')
         if bool(offline_adapter)==bool(native_auth):
             raise ValueError('Choose explicit insecure offline adapter OR authenticated native bridge')
@@ -109,11 +122,16 @@ class Service:
         self.native_region_id=native_region_id
         self.map_catalog=map_catalog
         self.query_probe=bool(query_probe)
+        self.lab_endpoint=lab_endpoint
         self.query_probe_count=0
         self.native_udp_peers={}
         self.engine = None if native_auth else Engine(store, game_port, p2p_port, training_rewards=training_rewards,
-                                                       account_uid=account_uid,hub=hub,map_catalog=map_catalog)
+                                                       account_uid=account_uid,hub=hub,map_catalog=map_catalog,advertised_host=host)
         self.event_sink = event_sink or (lambda row: None)
+        self.lab_capture = LabCapture(self.event) if lab_endpoint else None
+        self.sdp_router = sdp_router
+        if sdp_router is not None:
+            sdp_router.attach(self)
         self.idle_seconds = idle_seconds
         self.servers, self.tasks, self.writers = [], set(), set()
         self.udp = None
@@ -143,6 +161,9 @@ class Service:
             policy='decoded_whitelist'
         elif message.id==9070 and len(message.payload)==2:
             fields={'category_code':message.payload[0],'variant_code':message.payload[1]}
+            policy='decoded_whitelist'
+        elif message.id==2260 and len(message.payload)==3:
+            fields=dict(zip(('page_u8','room_filter_u8','mode_filter_u8'),message.payload))
             policy='decoded_whitelist'
         elif message.id==20360 and len(message.payload)==12:
             fields={'self_query':struct.unpack_from('<Q',message.payload)[0]==c.uid,
@@ -191,7 +212,14 @@ class Service:
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
 
+    def accepts_peer(self, peer):
+        return self.lab_endpoint.accepts(peer) if self.lab_endpoint else bool(peer) and peer[0]=='127.0.0.1'
+
     def _track(self, writer):
+        if not self.accepts_peer(writer.get_extra_info('peername')):
+            self.event('peer_rejected')
+            writer.close()
+            return False
         if len(self.writers) >= 16:
             writer.close()
             return False
@@ -239,7 +267,7 @@ class Service:
             else:
                 self.engine.grant_authenticated_session()
                 binding['stage']='directory'
-            writer.write(encode_login(packets.login_directory(self.game_port)))
+            writer.write(encode_login(packets.login_directory(self.game_port,self.host)))
             await asyncio.wait_for(writer.drain(), 2)
             self.event('authenticated_sdk_grant' if binding is not None else 'offline_sdk_grant')
             # Detect EOF correctly; do not use stale Socket.Connected status.
@@ -261,15 +289,20 @@ class Service:
             await self._finish(writer)
             return
         decoder, lock = GameDecoder(), asyncio.Lock()
+        last_message = None
         last_rx = time.monotonic()
         accepted_at=last_rx
 
         async def send(messages):
             async with lock:
                 for message in messages:
+                    if self.lab_capture:
+                        self.lab_capture.record('game-tcp','tx',message.id,message.payload,c.phase.value)
                     writer.write(encode_game(message))
                     self.event('tx', connection=c.number, phase=c.phase.value,
-                               id=message.id, size=len(message.payload))
+                               id=message.id, size=len(message.payload),
+                               **({'battle_id':struct.unpack_from('<I',message.payload)[0]}
+                                  if message.id==8071 and len(message.payload)>=39 else {}))
                 await asyncio.wait_for(writer.drain(), 2)
 
         async def pulse():
@@ -293,6 +326,7 @@ class Service:
                 if time.monotonic() - last_rx > self.idle_seconds:
                     writer.close()
                     return
+                engine.poll_battle_clock(c)
                 replies = engine.profile_ready(c, self.ready())+engine.take_pending(c)
                 if time.monotonic() >= heartbeat:
                     replies.append(Message(0))
@@ -311,6 +345,7 @@ class Service:
         try:
             while data := await reader.read(65536):
                 for message in decoder.feed(data):
+                    last_message = (message.id, len(message.payload))
                     last_rx = time.monotonic()
                     if last_rx - rate_start >= 1:
                         rate_start, rate_count = last_rx, 0
@@ -330,6 +365,8 @@ class Service:
                             if wanted is None or binding['stage']!=wanted:
                                 raise AuthError('native_handoff_rejected')
                     self.record_menu_query(c,message)
+                    if self.lab_capture and c is engine.game:
+                        self.lab_capture.record('game-tcp','rx',message.id,message.payload,c.phase.value)
                     if message.id==3010 and len(message.payload)==81:
                         chosen,resolved=struct.unpack_from('<ii',message.payload,38)
                         self.event('room_create_request',connection=c.number,phase=previous.value,
@@ -347,6 +384,12 @@ class Service:
                     if binding is not None:
                         if message.id==1010: binding['stage']='bootstrap'
                         if message.id==2010: binding['stage']='game'
+                        if message.id==2060 and c.phase==Phase.CLOSED:
+                            if previous==Phase.LOBBY:
+                                binding['stage']='bootstrap'
+                                binding['lobby_ready']=False
+                            else:
+                                self.native_auth.release_native(identity)
                         if message.id==2250 and c is engine.game and c.phase==Phase.LOBBY:
                             binding['lobby_ready']=True
                     if engine.last_consume_event:
@@ -358,9 +401,13 @@ class Service:
                         unknown_count = engine.unknown[('overflow', -1, 0)]
                     if message.id and (unknown_count <= 1 or unknown_count & (unknown_count - 1) == 0):
                         self.event('rx', connection=c.number, phase=previous.value,
-                                   id=message.id, size=len(message.payload))
+                                   id=message.id, size=len(message.payload),
+                                   **({'battle_id':struct.unpack_from('<I',message.payload)[0]}
+                                      if message.id==8071 and len(message.payload)>=39 else {}))
                     if out:
                         await send(out)
+                    if c.phase==Phase.CLOSED:
+                        return  # Flush2070, then retire old socket without touching a new session.
                     if message.id==3010 and c.phase==Phase.ROOM and engine.room is not None:
                         fixed=engine.room.resolved_request or engine.room.request
                         selected,resolved=struct.unpack_from('<ii',fixed,38)
@@ -369,7 +416,10 @@ class Service:
                         c.bootstrap_sent = True
             decoder.eof()
         except (ProtocolError, AuthError, ValueError, asyncio.IncompleteReadError, ConnectionError, OSError) as exc:
-            self.event('game_closed', connection=c.number, reason=type(exc).__name__)
+            self.event('game_closed', connection=c.number, phase=c.phase.value,
+                       last_rx_id=last_message[0] if last_message else None,
+                       last_rx_size=last_message[1] if last_message else None,
+                       reason=type(exc).__name__)
         finally:
             pulse_task.cancel()
             await asyncio.gather(pulse_task, return_exceptions=True)

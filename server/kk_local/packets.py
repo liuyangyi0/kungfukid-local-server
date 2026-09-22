@@ -4,10 +4,11 @@ Native refs: 046B:A27050, 047F:823420, 0C1C:824490, 0C58:8202C0,
 0FF0:81E1A0, 1054:829770, 1F86:82C4E0. See room/P2P experiment.
 """
 import struct
+import ipaddress
 from .wire import Message, ProtocolError, text_be
 from .shop_catalog import encode_catalog
 
-COMPETITIVE_MODES = frozenset((0, 1, 2, 3))
+COMPETITIVE_MODES = frozenset((0, 1, 2, 3, 16))
 TEAM_MODES = frozenset((1, 3))
 
 
@@ -37,17 +38,17 @@ def login_ack(account: str, uid: int):
     return Message(1002, b'\1' + text_be(account) + text_be(str(uid)) + bytes(range(1, 49)))
 
 
-def login_directory(port: int):
+def login_directory(port: int, host='127.0.0.1'):
     meta = bytearray(44)
     struct.pack_into('<H', meta, 0, 100)
     struct.pack_into('<II', meta, 12, 1, 999)
     meta[24:35] = b'Local Lobby'
-    payload = struct.pack('>HI', 1, 1) + b'\1\0\0\x7f' + struct.pack('>HHBB', port, 0, 0, 44)
+    payload = struct.pack('>HI', 1, 1) + ipaddress.IPv4Address(host).packed[::-1] + struct.pack('>HHBB', port, 0, 0, 44)
     return Message(1012, payload + meta)
 
 
-def catalog(port: int):
-    endpoint = struct.pack('<IH20s', 1, port, b'127.0.0.1')
+def catalog(port: int, host='127.0.0.1'):
+    endpoint = struct.pack('<IH20s', 1, port, str(ipaddress.IPv4Address(host)).encode('ascii'))
     lobby = bytearray(46)
     struct.pack_into('<I', lobby, 0, 1)
     lobby[4:15] = b'Local Lobby'
@@ -57,7 +58,7 @@ def catalog(port: int):
     return [Message(7080, endpoint), Message(7070, bytes(lobby))]
 
 
-def account_packets(inventory: bytes, port: int, *, gold=0):
+def account_packets(inventory: bytes, port: int, *, gold=0, host='127.0.0.1'):
     config = bytearray(44)
     struct.pack_into('<III', config, 0, 10, 5, 255)
     struct.pack_into('<I', config, 20, 1)  # LOCAL mark threshold, original unknown
@@ -66,12 +67,12 @@ def account_packets(inventory: bytes, port: int, *, gold=0):
     if type(gold) is not int or not 0<=gold<=2147483647:raise ProtocolError('gold balance range')
     struct.pack_into('<I',core,16,gold)
     return [Message(1131, bytes(config)), Message(1020, bytes(core)),
-            Message(1120, inventory), *catalog(port)]
+            Message(1120, inventory), *catalog(port, host)]
 
 
-def lobby_context(udp_port: int):
+def lobby_context(udp_port: int, host='127.0.0.1'):
     p = bytearray(52)
-    struct.pack_into('<I20sHI', p, 0, 1, b'127.0.0.1', udp_port, 1)
+    struct.pack_into('<I20sHI', p, 0, 1, str(ipaddress.IPv4Address(host)).encode('ascii'), udp_port, 1)
     return Message(2030, bytes(p))
 
 
@@ -79,13 +80,21 @@ def resolve_room_request(request: bytes, map_catalog=None):
     if len(request) != 81:
         raise ProtocolError('room creation length')
     # choosemode.xml and native98C1B0: the same room-entry contract selects
-    # four competitive factories, or5 for practice. This is admission, not
+    # competitive factories (including the distinct reborn16), or5 practice.
+    # This is admission, not
     # a claim that competitive start/settlement has been qualified.
-    if request[46] not in COMPETITIVE_MODES and request[46] != 5:
+    pve_plans=getattr(map_catalog,'stage_plans' if request[46]==21 else 'foster_plans',{}) if request[46] in (10,21) else {}
+    stage_enabled=bool(pve_plans)
+    tutorial_enabled=request[46]==4 and bool(getattr(map_catalog,'tutorial_enabled',False))
+    if request[46] not in COMPETITIVE_MODES and request[46] != 5 and not stage_enabled and not tutorial_enabled:
         raise RoomRequestRejected('unsupported_room_mode')
     chosen, resolved = struct.unpack_from('<ii', request, 38)
-    if request[37] not in (2, 4, 6, 8):
+    if (request[37]!=1 if tutorial_enabled else request[37] not in (2,4,6,8)):
         raise RoomRequestRejected('unsupported_room_capacity')
+    if request[46]==16 and request[37]>6:
+        raise RoomRequestRejected('unsupported_room_capacity')  #8153F0 renders six ranks.
+    if stage_enabled and (request[37]>6 or chosen not in pve_plans):
+        raise RoomRequestRejected('unsupported_room_map')  # no random/other-script substitution
     if map_catalog is not None:
         from .maps import MapAdmissionError
         try:chosen,resolved=map_catalog.resolve(request[46],request[37],chosen,resolved)
@@ -248,14 +257,17 @@ def equipped_records(inventory):
             if struct.unpack_from('<H',inventory,i+17)[0]]
 
 
-def fighter_snapshot(uid, nickname, profile, inventory, slot, team, p2p_id, *, ready=False, update=False):
+def fighter_snapshot(uid, nickname, profile, inventory, slot, team, p2p_id, *, ready=False, spectator=False, registry_key=None):
     """81CF10/81EEA0:149-byte fighter then its ACTUAL equipped68-byte rows.
 
     Optional guild/rank/premium fields use local non-premium defaults. This
     is a provisional server record, not a recovered old-server serializer.
     """
-    if len(profile)!=360 or not 0<=slot<8 or team not in (0,1):
+    if len(profile)!=360 or not (slot==8 if spectator else 0<=slot<8) or team not in (0,1):
         raise ProtocolError('fighter identity/slot')
+    registry_key=slot if registry_key is None else registry_key
+    if type(registry_key) is not int or not (registry_key==8 if spectator else 0<=registry_key<8):
+        raise ProtocolError('fighter room position key')
     name=nickname.encode('gbk')
     if not name or len(name)>20 or b'\0' in name:
         raise ProtocolError('fighter nickname')
@@ -263,24 +275,36 @@ def fighter_snapshot(uid, nickname, profile, inventory, slot, team, p2p_id, *, r
     if len(records)>255:
         raise ProtocolError('too many equipped records')
     body=bytearray(149)
-    struct.pack_into('<QBBB',body,0,uid,slot,team,slot)
+    # 81CF10 ->81CB00: +8 registry slot, +9 registry key, +10 team.
+    # Slot selects PlayerRegistry; key selects room position/UI. They are
+    # independent, especially when a team change moves between key banks.
+    struct.pack_into('<QBBB',body,0,uid,slot,registry_key,team)
     body[11:32]=name.ljust(21,b'\0')
     body[53]=int(ready)
     body[54:57]=profile[122:125]
     body[64]=len(records)
     struct.pack_into('<I',body,67,p2p_id)
-    body[76]=int(update)
+    #81EEA0: nonzero routes to the observer-record map, not an in-place
+    #player refresh. Active roster notifications always keep this byte0;
+    #81CB00 safely replaces the existing occupant of the same native slot.
+    body[76]=int(spectator)
     return bytes(body)+b''.join(records)
 
 
-def room_entry_member(request, uid, room_id, slot, team, fighter, *, map_catalog=None):
+def room_entry_member(request, uid, room_id, slot, team, fighter, *, map_catalog=None, spectator_capacity=0, series_rounds=0):
     entry=bytearray(room_entry(request,uid,room_id,map_catalog=map_catalog))
-    entry[10:12]=bytes((slot,team))
+    # 824490 supplies +10 slot, +11 registry key and (team modes) +66 team.
+    entry[10:12]=bytes((slot,fighter[9]))
+    entry[66]=team
     entry[96:245]=fighter[:149]
+    if not 0<=spectator_capacity<=8:raise ProtocolError('spectator capacity')
+    entry[64]=spectator_capacity  # config copied to CRoom+4; u8+44 is this capacity
+    if type(series_rounds) is not int or series_rounds not in (0,1,3,5,7):raise ProtocolError('local series round policy')
+    struct.pack_into('<I',entry,74,series_rounds)  #81B010 copy -> CRoom+4E
     return Message(3100,bytes(entry))
 
 
-def room_list_record(room_id, request, members, *, waiting=True, map_catalog=None):
+def room_list_record(room_id, request, members, *, waiting=True, map_catalog=None, spectators=0, spectator_capacity=0):
     """9222D0 display fields,9253B0 join gates,824280 stride259."""
     if not 1<=room_id<=255:
         raise ProtocolError('native list byte-key room limit')
@@ -291,9 +315,18 @@ def room_list_record(room_id, request, members, *, waiting=True, map_catalog=Non
     body[23:31]=config[12:20]
     body[31]=config[61]  # Password lock; never publish the password.
     body[33]=config[57]
-    body[34]=0  # Spectators not admitted by this local adapter yet.
+    body[34]=int(spectator_capacity>0)
+    struct.pack_into('<HH',body,35,spectator_capacity,spectators)
     body[39:47]=bytes((config[62],members,int(waiting),config[59],config[60],config[65],0,0))
     return bytes(body)
+
+
+def spectator_transition(uid, spectator, fighter):
+    #821560 ->81D150:16-byte transition prefix,149-byte roster and real gear.
+    if (len(fighter)<149 or len(fighter)!=149+fighter[64]*68 or
+            struct.unpack_from('<Q',fighter)[0]!=uid or fighter[76]!=int(spectator)):
+        raise ProtocolError('spectator transition record')
+    return Message(3092,struct.pack('<QiB3x',uid,0,int(spectator))+fighter)
 
 
 def room_directory(records):
@@ -302,9 +335,70 @@ def room_directory(records):
     return Message(2280,struct.pack('<II',1,len(records))+b''.join(records))
 
 
-def battle_start_members(room_id, serial, local_slot, runtime_values):
+def player_directory_record(uid, nickname, *, in_room=False):
+    """896F20 ordinary public row, not a68-byte inventory descriptor.
+
+    Only identity/name/presence are currently backed by local service state.
+    Sex/rank/reputation/title/VIP are explicitly unset, NOT copied from
+    unrelated profile offsets or inferred from local match point awards.
+    """
+    name=nickname.encode('gbk')
+    if type(uid) is not int or not 0<uid<2**64 or not name or len(name)>20 or b'\0' in name:
+        raise ProtocolError('player directory identity/name')
+    body=bytearray(68)
+    struct.pack_into('<Q',body,0,uid)
+    body[8:29]=name.ljust(21,b'\0')
+    body[46]=int(bool(in_room))
+    return bytes(body)
+
+
+def player_directory(records, *, page=1, pages=1):
+    #8243D0:8-byte header,N*68 rows.92E6C0 has ten identity slots.
+    if (len(records)>10 or any(len(r)!=68 for r in records) or
+            type(page) is not int or type(pages) is not int or
+            not 1<=page<=0xffffffff or not 1<=pages<=0xffffffff):
+        raise ProtocolError('player directory page/row bound')
+    return Message(2270,struct.pack('<II',page,pages)+b''.join(records))
+
+
+def public_role_preview(requester, target, profile, inventory):
+    """8218C0 ->889660 consumes target UID, model descriptors and profile360.
+
+    Expose only the known public identity/appearance subset. Unknown profile
+    bytes (including private balances) never cross this query boundary.
+    """
+    if len(profile)!=360 or profile[122] not in (1,2):
+        raise ProtocolError('public preview role profile unavailable')
+    records=equipped_records(inventory)
+    if len(records)>255:raise ProtocolError('public preview equipment bound')
+    public=bytearray(360)
+    public[:25]=profile[:25]  # role ID and nickname21
+    public[122:125]=profile[122:125]  # actual model/body tuple
+    return Message(2421,struct.pack('<QQB',requester,target,len(records))+bytes(public)+b''.join(records))
+
+
+def public_weapon_collection(requester, target, inventory):
+    """2431: header20 plus count*9; A76DC0 keys rows by weapon resource ID.
+
+    Ownership comes from actual kind25 inventory. The remaining DWORD and
+    byte describe unimplemented enhancement state and stay local-default0;
+    neither instance IDs, durability nor inventory quantities are substituted.
+    """
+    if len(inventory)%68:raise ProtocolError('public collection inventory length')
+    ids=sorted({struct.unpack_from('<I',inventory,offset+5)[0]
+                for offset in range(0,len(inventory),68) if inventory[offset+4]==25})
+    if len(ids)>4096 or 0 in ids:raise ProtocolError('public collection weapon bound')
+    return Message(2431,struct.pack('<QQI',requester,target,len(ids))+
+                   b''.join(struct.pack('<IIB',item,0,0) for item in ids))
+
+
+def battle_start_members(room_id, serial, host_slot, runtime_values):
+    #81E1A0 ->818910 ->4539E0 selects SetHost(+1B74), not the receiver's
+    # local identity(+DD0). All recipients need one consistent designation.
+    if not isinstance(host_slot,int) or not 0<=host_slot<8 or host_slot not in runtime_values:
+        raise ProtocolError('battle host must be an occupied slot')
     body=bytearray(battle_start(room_id,0,serial))
-    struct.pack_into('<H',body,11,local_slot)
+    struct.pack_into('<H',body,11,host_slot)
     for slot,value in runtime_values.items():
         if not 0<=slot<8:
             raise ProtocolError('battle slot bound')

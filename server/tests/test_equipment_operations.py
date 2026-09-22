@@ -79,7 +79,7 @@ class EquipmentOperationsTests(unittest.TestCase):
 
     def test_single_session_lobby_directory_is_truthfully_empty(self):
         for page in (0,1,255):
-            self.assertEqual(self.engine.handle(self.client,Message(2260,bytes([0,page,0]))),
+            self.assertEqual(self.engine.handle(self.client,Message(2260,bytes([page,1,136]))),
                              [Message(2280,bytes(8))])
         with self.assertRaises(ProtocolError):
             self.engine.handle(self.client,Message(2260,bytes(2)))

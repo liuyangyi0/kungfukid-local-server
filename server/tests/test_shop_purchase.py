@@ -116,6 +116,8 @@ class PurchaseNetworkTests(unittest.IsolatedAsyncioTestCase):
             writer.write(encode_game(Message(9040,req)));await writer.drain()
             self.assertEqual(await receive(),Message(9060,b'\x82\0'))
             writer.write(encode_game(Message(9070,b'\x19\1')));await writer.drain()
+            self.assertEqual(await receive(),Message(1240,struct.pack('<I',50)))
+            self.assertEqual(await receive(),Message(1230,bytes(4)))
             self.assertEqual((await receive()).id,9080)  # rejection kept connection alive
             self.assertEqual(s.gold_balance(1001),50)
             self.assertEqual(s.db.execute('SELECT COUNT(*) FROM shop_receipts').fetchone()[0],2)

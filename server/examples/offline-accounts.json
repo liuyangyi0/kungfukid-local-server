@@ -1,0 +1,7 @@
+{
+  "schema": "kk-offline-account-endpoints-v1",
+  "accounts": [
+    {"uid":1001,"account":"KKLocal","nickname":"KKLocal","login_port":8000,"game_port":8001,"p2p_port":8001,"role_ready_file":"C:\\KK-Lab\\kk1-roleprop-ready.txt"},
+    {"uid":1002,"account":"Second","nickname":"Second","login_port":8100,"game_port":8101,"p2p_port":8101,"role_ready_file":"C:\\KK-Lab\\kk2-roleprop-ready.txt"}
+  ]
+}

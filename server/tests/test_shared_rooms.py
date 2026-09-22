@@ -56,7 +56,7 @@ class SharedRoomTests(unittest.TestCase):
 
     def test_native_directory_and_actual_equipment_tail(self):
         self.e1.handle(self.c1,create_room())
-        directory=self.e2.handle(self.c2,Message(2260,bytes(3)))[0]
+        directory=self.e2.handle(self.c2,Message(2260,bytes((1,1,136))))[0]
         self.assertEqual((directory.id,len(directory.payload)),(2280,267))
         row=directory.payload[8:]
         self.assertEqual(struct.unpack_from('<H',row)[0],1)
@@ -85,8 +85,8 @@ class SharedRoomTests(unittest.TestCase):
         other=self.e2.take_pending(self.c2)
         self.assertEqual([m.id for m in out],[4050,4080])
         self.assertEqual([m.id for m in other],[4050,4080])
-        self.assertEqual(struct.unpack_from('<H',other[1].payload,11)[0],1)
-        self.assertEqual(struct.unpack_from('<II',out[1].payload,13),(1001,1002))
+        self.assertEqual(struct.unpack_from('<H',other[1].payload,11)[0],0)  # shared Host, not receiver slot
+        self.assertEqual(struct.unpack_from('<II',out[1].payload,13),(0,0))  # unmeasured; never P2P IDs
         self.assertEqual([m.id for m in self.e1.handle(self.c1,Message(4160))],[4170])
         self.assertEqual(self.c1.phase,Phase.LOADING)
         self.e2.take_pending(self.c2)
@@ -164,21 +164,28 @@ class SharedRoomTests(unittest.TestCase):
         self.assertNotIn(1002,self.h.suspended)
         restored=self.e1.take_pending(self.c1)
         self.assertEqual(restored[-1].id,3090)
-        self.assertEqual(restored[-1].payload[76],1)
+        self.assertEqual(restored[-1].payload[76],0)  # active slot, not spectator map
 
 
 class SharedRoomNetworkTests(unittest.IsolatedAsyncioTestCase):
     async def test_two_endpoint_tcp_join_fanout(self):
         store=Store(':memory:'); store.seed_local(); store.provision_local(1002,'Second')
-        hub=RoomHub()
+        hub=RoomHub(team_series_rounds=getattr(self,'series_rounds',0),network_probe=getattr(self,'network_probe',False))
         services=[Service(store,lambda:True,login_port=0,game_port=0,p2p_port=0,
                           offline_adapter=True,hub=hub,account_uid=uid) for uid in (1001,1002)]
         writers=[]
+        clock_samples={}
         async def receive(reader):
             while True:
                 head=await asyncio.wait_for(reader.readexactly(8),2)
                 body=await asyncio.wait_for(reader.readexactly(struct.unpack_from('<I',head,4)[0]),2)
                 msg=GameDecoder().feed(head+body)[0]
+                if msg.id==8090:
+                    self.assertEqual(len(msg.payload),4)
+                    value=struct.unpack('<I',msg.payload)[0]
+                    self.assertGreater(value,0)
+                    clock_samples.setdefault(reader,[]).append(value)
+                    continue
                 if msg.id: return msg
         async def connect(service):
             e=service.engine; e.grant_offline_adapter_session()
@@ -201,17 +208,242 @@ class SharedRoomNetworkTests(unittest.IsolatedAsyncioTestCase):
         try:
             for service in services: await service.start()
             r1,w1=await connect(services[0]); r2,w2=await connect(services[1])
-            w1.write(encode_game(create_room())); await w1.drain()
+            w1.write(encode_game(Message(2250,struct.pack('<II',1,10))));await w1.drain()
+            directory=await receive(r1)
+            self.assertEqual((directory.id,len(directory.payload)),(2270,144))
+            self.assertEqual([struct.unpack_from('<Q',directory.payload,8+i*68)[0] for i in range(2)],
+                             [1001,1002])
+            w1.write(encode_game(Message(2420,struct.pack('<Q',1002))));await w1.drain()
+            profile=await receive(r1)
+            self.assertEqual((profile.id,len(profile.payload)),(2421,377+7*68))
+            self.assertEqual(struct.unpack_from('<Q',profile.payload,8)[0],1002)
+            w1.write(encode_game(Message(2430,struct.pack('<Q',1002))));await w1.drain()
+            collection=await receive(r1)
+            self.assertEqual((collection.id,len(collection.payload)),(2431,29))
+            self.assertEqual(struct.unpack_from('<I',collection.payload,20)[0],253030)
+            request=bytearray(create_room().payload);request[46]=getattr(self,'mode',0)
+            w1.write(encode_game(Message(3010,bytes(request)))); await w1.drain()
             self.assertEqual([(await receive(r1)).id for _ in range(2)],[3100,3160])
-            w2.write(encode_game(Message(2260,bytes(3)))); await w2.drain()
+            w2.write(encode_game(Message(2260,bytes((1,1,136))))); await w2.drain()
             self.assertEqual(len((await receive(r2)).payload),267)
-            w2.write(encode_game(Message(3070,struct.pack('<HB11s',1,0,b'')))); await w2.drain()
+            from server.tests.test_room_invites import invite,decline,accept
+            w1.write(encode_game(invite()));await w1.drain()
+            self.assertEqual((await receive(r2)).id,3500)
+            w2.write(encode_game(decline()));await w2.drain()
+            refused=await receive(r1)
+            self.assertEqual((refused.id,refused.payload[8:29].split(b'\0')[0]),(3502,b'Second'))
+            w1.write(encode_game(invite()));await w1.drain()
+            self.assertEqual((await receive(r2)).id,3500)
+            w2.write(encode_game(accept()));await w2.drain()
             self.assertEqual([(await receive(r2)).id for _ in range(3)],[3100,3160,3090])
             peer=await receive(r1)
             self.assertEqual((peer.id,struct.unpack_from('<Q',peer.payload)[0]),(3090,1002))
+            # Transfer and return authority through the actual TCP router.
+            for writer,reader,other,target in ((w1,r1,r2,1002),(w2,r2,r1,1001)):
+                writer.write(encode_game(Message(4051,struct.pack('<IQ',1,target))));await writer.drain()
+                update=Message(3160,struct.pack('<Q',target))
+                self.assertEqual(await receive(reader),update)
+                self.assertEqual(await receive(other),update)
+                self.assertEqual(await receive(reader),Message(4052,b'\0\0'))
             w2.write(encode_game(Message(4030))); await w2.drain()
             self.assertEqual((await receive(r2)).id,4050)
             self.assertEqual((await receive(r1)).payload,struct.pack('<Q',1002))
+            w1.write(encode_game(Message(4030)));await w1.drain()
+            starts=[]
+            for reader in (r1,r2):
+                self.assertEqual((await receive(reader)).id,4050)
+                start=await receive(reader)
+                if hub.network_probe_enabled:self.assertEqual(start.id,4150)
+                else:
+                    self.assertEqual(start.id,4080);starts.append(start.payload)
+            if hub.network_probe_enabled:
+                for writer in (w1,w2):writer.write(encode_game(Message(4140)));await writer.drain()
+                for reader in (r1,r2):
+                    start=await receive(reader);self.assertEqual(start.id,4080);starts.append(start.payload)
+                    self.assertTrue(all(0<x<10000 for x in struct.unpack_from('<II',start.payload,13)))
+            self.assertEqual(starts[0],starts[1])  # one Host designation
+            w1.write(encode_game(Message(4160)));await w1.drain()
+            for reader in (r1,r2):self.assertEqual((await receive(reader)).id,4170)
+            w2.write(encode_game(Message(4160)));await w2.drain()
+            for reader in (r1,r2):
+                self.assertEqual([(await receive(reader)).id for _ in range(2)],[4170,4180])
+            w1.write(encode_game(Message(8040,struct.pack('<HQI',1,1001,0))));await w1.drain()
+            w2.write(encode_game(Message(8040,struct.pack('<HQI',1,1002,0))));await w2.drain()
+            for reader in (r1,r2):self.assertEqual((await receive(reader)).id,8070)
+            w1.write(encode_game(Message(4082)));await w1.drain()
+            self.assertEqual(await receive(r1),Message(4083,struct.pack('<QIII',1001,0,0,0)))
+            from server.tests.test_owned_battle_relay import message as control
+            for seq,ident in enumerate((8122,8125,8143,8280)):
+                m=control(ident,seq)
+                w1.write(encode_game(m));await w1.drain()
+                self.assertEqual(await receive(r2),m)
+                # Duplicate is followed by the next event on the same TCP
+                # stream; that next comparison would detect an extra delivery.
+                w1.write(encode_game(m));await w1.drain()
+            end=control(8122,4)
+            w1.write(encode_game(end));await w1.drain()
+            self.assertEqual(await receive(r2),end)
+            reverse=control(8143,0,sender=1002,player=1002,target=1001)
+            w2.write(encode_game(reverse));await w2.drain()
+            self.assertEqual(await receive(r1),reverse)  # also detects sender echo
+            from server.tests.test_battle_effect_relay import effect
+            room=services[0].engine.room
+            hp=effect(8121,room,seq=5,amount=12.5)
+            w1.write(encode_game(hp));await w1.drain()
+            self.assertEqual(await receive(r2),hp)
+            apply=effect(8150,room,sender=1002,target=1002,source=1002,seq=1)
+            w2.write(encode_game(apply));await w2.drain()
+            self.assertEqual(await receive(r1),apply)  # no HP echo on this stream
+            cancel=effect(8150,room,target=1002,source=0,operation=0,seq=6)
+            w1.write(encode_game(cancel));await w1.drain()
+            self.assertEqual(await receive(r2),cancel)
+            self.assertNotIn((1002,12),room.active_states)
+            from server.tests.test_projectile_protocol import projectile
+            for seq,ident in enumerate((8400,8403,8401,8404),start=7):
+                m=projectile(ident,room,seq=seq)
+                w1.write(encode_game(m));await w1.drain()
+                self.assertEqual(await receive(r2),m)
+                if ident==8400:
+                    for hit_seq,hit_id in ((2,8402),(3,8401)):
+                        hit_event=projectile(hit_id,room,sender=1002,seq=hit_seq)
+                        w2.write(encode_game(hit_event));await w2.drain()
+                        self.assertEqual(await receive(r1),hit_event)
+            self.assertFalse(room.projectiles[10000]['alive'])
+            from server.tests.test_pickup_handshake import pickup
+            request=pickup(9000,room,seq=4)
+            w2.write(encode_game(request));await w2.drain()
+            self.assertEqual(await receive(r1),request)
+            response=pickup(9001,room,sender=1001,seq=11)
+            w1.write(encode_game(response));await w1.drain()
+            self.assertEqual(await receive(r2),response)
+            completion=pickup(9002,room,seq=5)
+            w2.write(encode_game(completion));await w2.drain()
+            self.assertEqual(await receive(r1),completion)
+            self.assertEqual(room.pickup_requests,{})
+            from server.tests.test_world_chest_handshake import chest
+            request=chest(9500,seq=6)
+            w2.write(encode_game(request));await w2.drain()
+            self.assertEqual(await receive(r1),request)
+            reply=chest(9501,sender=1001,seq=12)
+            w1.write(encode_game(reply));await w1.drain()
+            self.assertEqual(await receive(r2),reply)
+            complete=chest(9502,seq=7)
+            w2.write(encode_game(complete));await w2.drain()
+            self.assertEqual(await receive(r1),complete)
+            from server.kk_local.combat_catalog import CombatCatalog
+            import xml.etree.ElementTree as ET
+            hub.combat_catalog=CombatCatalog.from_xml(ET.fromstring(
+                '<SkillProperty><PropertyItem SkillProId="811115"/></SkillProperty>'))
+            hit=bytearray(effect(8121,room,seq=13).payload)
+            struct.pack_into('<I',hit,56,811115);hit[85]=1
+            hit=Message(8071,bytes(hit))
+            w1.write(encode_game(hit));await w1.drain()
+            self.assertEqual(await receive(r2),hit)
+            receipt=bytearray(71);struct.pack_into('<IQ',receipt,0,8126,1001)
+            receipt[12:14]=b'\x01\x01';struct.pack_into('<I',receipt,19,14)
+            struct.pack_into('<QQQII',receipt,39,1001,1001,1002,811115,1)
+            receipt=Message(8071,bytes(receipt))
+            w1.write(encode_game(receipt));await w1.drain()
+            self.assertEqual(await receive(r2),receipt)
+            from server.tests.test_collectible_spawn import spawn
+            collectible=spawn(seq=15)
+            w1.write(encode_game(collectible));await w1.drain()
+            self.assertEqual(await receive(r2),collectible)
+            from server.tests.test_mp_snapshot_relay import mp_snapshot
+            mp=mp_snapshot(room,value=18.75,seq=16)
+            w1.write(encode_game(mp));await w1.drain()
+            self.assertEqual(await receive(r2),mp)
+            from server.tests.test_death_notice import notice
+            countdown=notice(8278,target=1002,seq=17)
+            w1.write(encode_game(countdown));await w1.drain()
+            self.assertEqual(await receive(r2),countdown)
+            terminal=notice(8286,target=1002,seq=18)
+            w1.write(encode_game(terminal));await w1.drain()
+            self.assertEqual(await receive(r2),terminal)
+            if room.request[46]==16:
+                from server.tests.test_mode16_protocol import snapshot,event
+                for m in (snapshot(seq=19),event(seq=20)):
+                    w1.write(encode_game(m));await w1.drain()
+                    self.assertEqual(await receive(r2),m)
+            from server.tests.test_pair_transform import selection,transform
+            select=selection(seq=100)
+            w1.write(encode_game(select));await w1.drain()
+            self.assertEqual(await receive(r2),select)
+            paired=transform(seq=100)
+            w2.write(encode_game(paired));await w2.drain()
+            self.assertEqual(await receive(r1),paired)
+            selector=control(8293,101)
+            w1.write(encode_game(selector));await w1.drain()
+            self.assertEqual(await receive(r2),selector)
+            from server.tests.test_owned_slip import slip
+            movement=slip(sender=1002,first=1002,seq=102)
+            w2.write(encode_game(movement));await w2.drain()
+            self.assertEqual(await receive(r1),movement)
+            from server.tests.test_weapon_throw_relay import throw
+            thrown=throw(room,seq=103)
+            w1.write(encode_game(thrown));await w1.drain()
+            self.assertEqual(await receive(r2),thrown)
+            #Real TCP control replies interleave with the native battle clock.
+            for reader in (r1,r2):
+                self.assertTrue(clock_samples.get(reader))
+                values=clock_samples[reader]
+                self.assertEqual(values,sorted(set(values)))
+            if room.series:
+                from server.tests.test_team_series import series_event,report_bytes
+                for writer,reader,msg in (
+                    (w1,r2,series_event(8294,seq=104)),
+                    (w2,r1,series_event(8296,sender=1002,seq=104)),
+                    (w1,r2,series_event(8295,seq=105)),
+                    (w1,r2,series_event(8297,seq=106))):
+                    writer.write(encode_game(msg));await writer.drain()
+                    self.assertEqual(await receive(reader),msg)
+                w1.write(encode_game(Message(4111,bytes(report_bytes(scores=(2,0),perfect=1)))));await w1.drain()
+                for reader in (r1,r2):
+                    result=await receive(reader)
+                    self.assertEqual((result.id,len(result.payload)),(4112,309))
+                    self.assertEqual(struct.unpack_from('<ii',result.payload,3),(2,0))
+                for writer,uid in ((w1,1001),(w2,1002)):
+                    for value in (3,0):writer.write(encode_game(Message(3550,struct.pack('<QI',uid,value))))
+                    await writer.drain()
+            else:
+                report=bytearray(696)
+                for slot,(uid,hp) in enumerate(((1001,100),(1002,0))):
+                    offset=87*slot
+                    struct.pack_into('<HH',report,offset,100,hp)
+                    struct.pack_into('<Q',report,offset+29,uid)
+                    struct.pack_into('<HII',report,offset+65,65535,room.number,room.serial)
+                    if room.request[46]==16:struct.pack_into('<i',report,offset+37,150 if uid==1001 else 100)
+                w1.write(encode_game(Message(4110,bytes(report))));await w1.drain()
+                self.assertEqual(await receive(r2),Message(4100))
+                w2.write(encode_game(Message(4110,bytes(report))));await w2.drain()
+                for reader in (r1,r2):
+                    result=await receive(reader)
+                    self.assertEqual(result.id,4120)
+                    self.assertEqual((result.payload[10],result.payload[510]),(1,2))
+                w1.write(encode_game(Message(4115,bytes(4))));await w1.drain()
+                w2.write(encode_game(Message(4115,bytes(4))));await w2.drain()
+            for reader in (r1,r2):
+                self.assertEqual([(await receive(reader)).id for _ in range(2)],[4070,4070])
+            self.assertEqual(room.stage,'room')
+            #3550 is a room-only remote label. Exercise both identities and
+            #clear it before continuing to leave/return-to-channel operations.
+            for writer,reader,uid in ((w1,r2,1001),(w2,r1,1002)):
+                for value in (3,0):
+                    label=Message(3550,struct.pack('<QI',uid,value))
+                    writer.write(encode_game(label));await writer.drain()
+                    self.assertEqual(await receive(reader),label)
+            w1.write(encode_game(Message(3110)));await w1.drain()
+            self.assertEqual((await receive(r1)).id,3115)
+            self.assertEqual([(await receive(r2)).id for _ in range(2)],[3130,3160])
+            w1.write(encode_game(Message(2060)));await w1.drain()
+            self.assertEqual((await receive(r1)).id,2070)
+            self.assertEqual(await asyncio.wait_for(r1.read(),2),b'')
+            r1,w1=await asyncio.open_connection('127.0.0.1',services[0].game_port);writers.append(w1)
+            w1.write(encode_game(hello(2010,1001)));await w1.drain()
+            self.assertEqual((await receive(r1)).id,2030)
+            w2.write(encode_game(Message(4031)));await w2.drain()
+            self.assertEqual(await receive(r2),Message(4032,struct.pack('<Q',1002)))
+            self.assertIsNone(services[1].engine.room)
         finally:
             for w in writers: w.close()
             for service in services: await service.close()

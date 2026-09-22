@@ -68,7 +68,7 @@ class ShopStoreTests(unittest.TestCase):
             quick=e.handle(c,Message(1500,struct.pack('<BII',17,253033,0)))[0]
             self.assertEqual(quick,Message(1510,raw))
             self.assertEqual(e.handle(c,Message(1500,struct.pack('<BII',25,253033,0))),[Message(1510)])
-            self.assertEqual(e.handle(c,Message(1500,struct.pack('<BII',17,253033,1))),[])
+            self.assertEqual(e.handle(c,Message(1500,struct.pack('<BII',17,253033,1))),[Message(1230,bytes(4)),Message(1510)])
             self.assertEqual(e.handle(c,Message(9040,bytes(169))),[Message(9060,b'\x82\0')])
             self.assertEqual(s.snapshot(1001),before)
         finally:s.close()
