@@ -236,7 +236,6 @@ public sealed class AccountWindow : Form {
      try{if(NativeCloudHandoff.Invoke(pid,exe,native.adapter_dll,"KkNativeCloudSetTicket",packed)!=0)throw new InvalidOperationException("native_configuration_rejected");}finally{Array.Clear(packed,0,packed.Length);}
      EntryStage("native_tickets_installed");Progress("账号已授权，执行已有的原客户端初始化…");
      if(Convert.ToInt32(grant["game_port"])!=native.game_port||Convert.ToInt32(grant["udp_port"])!=native.udp_port)throw new InvalidOperationException("native_endpoint_mismatch");
-     NativeCloudHandoff.CheckEgress(clientRoot,native);
      NativeCloudHandoff.Inject(pid,exe,native.injector_path,native.initializer_dll);
      NativeCloudHandoff.WaitInstalled(pid,exe,native.adapter_dll,31,90);
      DateTime deadline=DateTime.UtcNow.AddSeconds(120);

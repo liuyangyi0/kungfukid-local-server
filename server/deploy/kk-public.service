@@ -1,0 +1,42 @@
+[Unit]
+Description=Invitation-only non-ranked game service
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=kk-game
+Group=kk-game
+WorkingDirectory=/opt/kk-server
+ExecStart=/opt/kk-server/.venv/bin/python -m server.kk_local --settings /etc/kk-server/public.json
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadWritePaths=/var/lib/kk-server /var/log/kk-server
+StateDirectory=kk-server
+LogsDirectory=kk-server
+LimitNOFILE=8192
+TasksMax=256
+MemoryMax=2G
+CPUQuota=200%
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+[Install]
+WantedBy=multi-user.target

@@ -5,13 +5,13 @@ Uses kk-local-auth-v1 without persisting passwords or tokens. The original SDK
 initialization bridge is still required; this is not a replacement SDK.
 Run Test-KkLocalAccountWindow.ps1 for isolated UI/API-fixture validation.
 Deploy this script and LocalAccountWindow.cs together; editing host source alone
-does not update an already installed VM copy.
+does not update an already installed client copy.
 #>
 [CmdletBinding()]
 param([int]$AuthPort=7999,
-      [string]$ClientRoot='C:\KK-Lab\kk1-lobby-client-20260911',
-      [string]$LabRoot='C:\KK-Lab',
-      [string]$EventsPath='C:\KK-Lab\password-service\Game.jsonl',
+      [Parameter(Mandatory)][string]$ClientRoot,
+      [Parameter(Mandatory)][string]$LabRoot,
+      [string]$EventsPath='',
       [string]$NativeCloudSettings='')
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Windows.Forms,System.Drawing,System.Web.Extensions,System.Xml

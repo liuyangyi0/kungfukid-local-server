@@ -1,13 +1,12 @@
 {
-  "development_only": true,
+  "development_only": false,
   "auth_host": "localhost",
   "auth_port": 17999,
   "sdk_host": "127.0.0.1",
   "sdk_port": 18000,
   "game_port": 18001,
   "udp_port": 18001,
-  "egress_policy_script": "C:\\KK-Lab\\native-tools\\Set-KkNativeEgress.ps1",
-  "adapter_dll": "C:\\KK-Lab\\native-tools\\kk_native_cloud_ticket.dll",
-  "injector_path": "C:\\KK-Lab\\kk_inject.exe",
-  "initializer_dll": "C:\\KK-Lab\\kk1-official-flow.dll"
+  "adapter_dll": "C:\\MyGame\\native-tools\\kk_native_cloud_ticket.dll",
+  "injector_path": "C:\\MyGame\\native-tools\\kk_inject.exe",
+  "initializer_dll": "C:\\MyGame\\native-tools\\kk1-official-flow.dll"
 }

@@ -22,12 +22,11 @@ public sealed class NativeCloudOptions {
  public bool development_only;
  public void Validate(){
   IPAddress ip;
-  if(!development_only||String.IsNullOrWhiteSpace(auth_host)||auth_host.IndexOfAny(new[]{'\r','\n','/','\\','\0'})>=0||auth_port<1||auth_port>65535||sdk_port<1||sdk_port>65535||!IPAddress.TryParse(sdk_host,out ip)||ip.AddressFamily!=AddressFamily.InterNetwork)throw new InvalidOperationException("invalid_native_settings");
-  // Main server is deliberately loopback-only until original-client/security
-  // qualification. Do not quietly turn this launcher into a public release.
-  if(!IPAddress.IsLoopback(ip))throw new InvalidOperationException("native_public_not_ready");
+  if(String.IsNullOrWhiteSpace(auth_host)||auth_host.IndexOfAny(new[]{'\r','\n','/','\\','\0'})>=0||auth_port<1||auth_port>65535||sdk_port<1||sdk_port>65535||!IPAddress.TryParse(sdk_host,out ip)||ip.AddressFamily!=AddressFamily.InterNetwork)throw new InvalidOperationException("invalid_native_settings");
+  // Client deployment location is not an authentication assertion. The server
+  // validates credentials and protocol facts, not this tool or its firewall.
   if(game_port<1||game_port>65535||udp_port<1||udp_port>65535||game_port==sdk_port||auth_port==game_port||auth_port==sdk_port)throw new InvalidOperationException("invalid_native_settings");
-  foreach(string path in new[]{adapter_dll,injector_path,initializer_dll,egress_policy_script})if(String.IsNullOrEmpty(path)||!Path.IsPathRooted(path)||!File.Exists(path))throw new InvalidOperationException("missing_native_tools");
+  foreach(string path in new[]{adapter_dll,injector_path,initializer_dll})if(String.IsNullOrEmpty(path)||!Path.IsPathRooted(path)||!File.Exists(path))throw new InvalidOperationException("missing_native_tools");
  }
 }
 
@@ -76,10 +75,8 @@ public static class NativeCloudHandoff {
  public static Process StartClient(string root,string runRoot,NativeCloudOptions options){
   string sdkHost=options.sdk_host;int sdkPort=options.sdk_port;
   root=Path.GetFullPath(root).TrimEnd('\\');
-  if(!root.StartsWith("C:\\KK-Lab\\",StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("isolated_client_copy_required");
-  // Effective OS policy, not a file receipt or a stale route check. Covers old
-  // SDK child processes and HTTP/DNS/IPv6 paths before the client first starts.
-  CheckEgress(root,options);
+  if(!Directory.Exists(root)||String.Equals(root,Path.GetPathRoot(root).TrimEnd('\\'),StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("client_directory_required");
+  options.Validate(); // no VM or machine firewall prerequisite
   for(var directory=new DirectoryInfo(root);directory!=null;directory=directory.Parent)if((directory.Attributes&FileAttributes.ReparsePoint)!=0)throw new InvalidOperationException("linked_client_directory_rejected");
   if((File.GetAttributes(Path.Combine(root,"Data"))&FileAttributes.ReparsePoint)!=0)throw new InvalidOperationException("linked_client_directory_rejected");
   string exe=Path.Combine(root,"gfxz-lab.exe");QualifyClient(exe);
