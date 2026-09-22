@@ -51,6 +51,7 @@ class PublicRuntime:
     async def summarize(self):
         while True:
             await asyncio.sleep(10)
+            self.metrics.counts['auth_listener_errors']=getattr(self.api.server,'errors',0)
             with contextlib.suppress(OSError):self.log.emit()
     def status(self):
         return dict(service_ready=True,mode='public',security_qualification='not-a-security-certification',

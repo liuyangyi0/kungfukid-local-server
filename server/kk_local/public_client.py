@@ -96,6 +96,9 @@ class ReferenceClient:
         ident,session,_,_,body,_=sdp_header(self.udp_records.open(data))
         if ident!=1002:raise ValueError('UDP handshake')
         _,self.peer_id,self.peer_session=struct.unpack_from('>III',body)
+        await self.send_udp(self.sdp(1013,bytes(4)))
+        response=await asyncio.wait_for(asyncio.get_running_loop().sock_recv(self.udp,65536),10)
+        if sdp_header(self.udp_records.open(response))[0]!=1014:raise ValueError('UDP reachability confirmation')
         await self.send(Message(1156,struct.pack('<QI',g['uid'],self.peer_id)))
     def sdp(self,ident,body,targets=()):
         extra=struct.pack('<'+len(targets)*'I',*targets)

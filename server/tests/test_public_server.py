@@ -72,6 +72,8 @@ class PublicServerTests(unittest.IsolatedAsyncioTestCase):
         c=self.client();await self.register(c,'PublicOne');uid=await c.login('PublicOne',PASSWORD)
         caps=await c.rpc('capabilities');self.assertEqual(caps['max_online'],100);self.assertFalse(caps['vm_required'])
         self.assertEqual(self.runtime.admission.by_uid[uid].engine.game.phase.value,'lobby')
+        self.assertEqual(self.runtime.game.udp_sender.getsockname(),self.runtime.game.udp.get_extra_info('sockname'))
+        self.assertFalse(self.runtime.game.udp_sender.getblocking())
         rows=await c.rpc('receipts',session=c.session);self.assertTrue(rows)
         self.assertNotIn(PASSWORD,(self.root/'events.jsonl').read_text())
         await c.rpc('logout',session=c.session);self.assertNotIn(uid,self.runtime.admission.by_uid)
@@ -117,3 +119,21 @@ class PublicServerTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn(a.grant['uid'],self.runtime.admission.by_uid)
         self.assertTrue((await b.rpc('entry_status',session=b.session,uid=b.grant['uid']))['lobby_ready'])
         self.assertLessEqual(self.runtime.game.outgoing.used,self.runtime.args.public_policy.outgoing_bytes)
+
+    async def test_udp_kernel_pressure_consumes_nonce_without_retransmission(self):
+        from server.kk_local.wire import sdp_reply,sdp_header
+        c=self.client();await self.register(c,'KernelBusy');await c.login('KernelBusy',PASSWORD)
+        grant=self.runtime.admission.by_uid[c.grant['uid']];service=self.runtime.game
+        raw=sdp_reply(1014,c.peer_session,c.peer_id,bytes(4),grant.udp_peer[1])
+        sender=service.udp_sender;before=grant.transport_udp.sent
+        class Busy:
+            def sendto(self,*args):raise BlockingIOError()
+        try:
+            service.udp_sender=Busy();service.send_udp(raw,grant.udp_peer)
+            self.assertEqual(grant.transport_udp.sent,before+1)
+            self.assertEqual(service.metrics.counts['udp_kernel_pressure_drop'],1)
+        finally:service.udp_sender=sender
+        service.send_udp(raw,grant.udp_peer)
+        packet=await asyncio.wait_for(asyncio.get_running_loop().sock_recv(c.udp,65536),2)
+        self.assertEqual(sdp_header(c.udp_records.open(packet))[0],1014)
+        self.assertEqual(grant.transport_udp.sent,before+2)

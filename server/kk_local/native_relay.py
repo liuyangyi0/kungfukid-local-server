@@ -43,6 +43,7 @@ class NativeRelay:
                 e.register_p2p(player,secrets.randbelow(0xffffffff)+1,peer)
             grant.udp_peer=peer;self.peers[peer]=grant
             lease=e.p2p;lease['expires']=now+60
+            if self.admission.public_policy:lease.setdefault('confirmed',False)
             self.admission.by_player[lease['player']]=grant
             self.emit(sdp_reply(1002,lease['session'],lease['player'],socket.inet_aton(peer[0]),peer[1]),peer)
             return
@@ -50,6 +51,11 @@ class NativeRelay:
         if (self.peers.get(peer) is not grant or not e.p2p_alive() or lease['peer']!=peer or
                 lease['player']!=source or lease['session']!=session):raise AuthError('SDP lease rejected')
         if dest or struct.unpack_from('<H',data,20)[0]:raise ProtocolError('SDP routing header')
+        # The server's random native session in1002 is a return-routability
+        # challenge. A MAC alone proves the account, not the source UDP port.
+        # A subsequent normal control/data packet must echo that session before
+        # this endpoint can RECEIVE amplified room fanout.
+        if self.admission.public_policy:lease['confirmed']=True
         if ident in (1012,1013):
             if extra or len(body)!=4:raise ProtocolError('SDP control length')
             if ident==1012:e.p2p=None;grant.udp_peer=None;self.forget(grant);return
@@ -75,6 +81,7 @@ class NativeRelay:
             self.admission.validate(found);other=found.engine
             if other.room is not e.room or not other.p2p_alive() or not other.p2p.get('bound') or found.udp_peer is None:
                 raise AuthError('SDP target outside room or lease')
+            if self.admission.public_policy and not other.p2p.get('confirmed'):raise AuthError('SDP target reachability unconfirmed')
             targets.append(found)
         for target in targets:
             packet=bytearray(data[:24]);struct.pack_into('<H',packet,2,1009)

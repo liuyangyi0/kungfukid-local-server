@@ -67,12 +67,16 @@ class PublicPolicy:
         if set(data)!={'schema','limits'} or data['schema']!='kk-public-security-policy-v1':raise ValueError('policy schema')
         return cls(**data['limits'])
     def capabilities(self):
+        from .public_commands import BASIC_BATTLE
         return dict(protocol='kk-local-auth-v1',game_transport='kk-aesgcm-v1',native_build=594,
                     registration='invitation',ranked=False,persistent_battle_rewards=False,
                     client_attestation_required=False,vm_required=False,local_firewall_required=False,
                     max_online=self.online,max_room_players=8,max_rooms=self.rooms,
                     modes=[0,1,2,3,5],authority='validated-relay-not-authoritative-combat',
-                    transaction_retry='new-native-frame-is-new-intent')
+                    transaction_retry='new-native-frame-is-new-intent',
+                    features=dict(commerce='explicit-server-offers-only',quests=False,pve=False,spectating=False,battle_submessages=sorted(BASIC_BATTLE)),
+                    limits=dict(tcp_per_account=self.connections_per_uid,udp_packets_per_second=200,
+                                queued_bytes_per_account=self.per_client_outgoing,hash_wait_seconds=self.hash_wait_seconds))
 
 class MemoryBudget:
     def __init__(self,limit,*,per_group=None):self.limit=limit;self.per_group=per_group;self.used=0;self.peak=0;self.owners={};self.groups={};self.group_used=Counter()

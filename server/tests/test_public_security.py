@@ -221,3 +221,26 @@ class PublicGameplayTests(unittest.TestCase):
         decoder=GameDecoder(header_validator=validate_header)
         raw=encode_game(Message(3010,bytes(2000)))
         with self.assertRaises(ProtocolError):decoder.feed(raw[:32])
+
+    def test_udp_fanout_requires_recipient_session_echo(self):
+        from types import SimpleNamespace
+        from server.kk_local.native_relay import NativeRelay
+        f=self.fixture;emitted=[];admission=SimpleNamespace(public_policy=PublicPolicy(),hub=f.hub,by_player={},validate=lambda grant:grant)
+        relay=NativeRelay(admission,emit=lambda data,peer:emitted.append((data,peer)))
+        grants=[]
+        for index,engine in enumerate((f.a,f.b),1):
+            peer=('127.0.0.1',40000+index)
+            engine.p2p=dict(player=index,session=100+index,peer=peer,uid=engine.account_uid,expires=engine.clock()+60,bound=True,confirmed=False)
+            g=SimpleNamespace(engine=engine,credential_digest=bytes([index]),udp_peer=peer,uid=engine.account_uid)
+            grants.append(g);relay.peers[peer]=g;admission.by_player[index]=g
+        def packet(ident,g,body,targets=(),session=None):
+            extra=struct.pack('<'+'I'*len(targets),*targets)
+            return struct.pack('<HHIIIIHBB',1,ident,session or g.engine.p2p['session'],0,g.engine.p2p['player'],0,0,0,len(extra))+extra+body
+        a,b=grants;motion=bytearray(108);struct.pack_into('<IQ',motion,0,8120,1001);struct.pack_into('<H',motion,97,3002)
+        data=packet(1008,a,encode_game(Message(8071,bytes(motion))),(2,))
+        with self.assertRaisesRegex(AuthError,'unconfirmed'):relay.handle(a,data,a.udp_peer)
+        self.assertEqual(emitted,[])
+        with self.assertRaises(AuthError):relay.handle(b,packet(1013,b,bytes(4),session=999),b.udp_peer)
+        self.assertFalse(b.engine.p2p['confirmed'])
+        relay.handle(b,packet(1013,b,bytes(4)),b.udp_peer);self.assertTrue(b.engine.p2p['confirmed']);emitted.clear()
+        relay.handle(a,data,a.udp_peer);self.assertEqual(len(emitted),1)

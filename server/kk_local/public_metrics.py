@@ -53,7 +53,8 @@ async def health_server(metrics,game,host='127.0.0.1',port=0):
             if len(head)>2048:raise ValueError()
             line=head.split(b'\r\n',1)[0]
             if line not in (b'GET /healthz HTTP/1.1',b'GET /readyz HTTP/1.1',b'GET /metrics HTTP/1.1'):raise ValueError()
-            body=json.dumps(metrics.snapshot() if b'/metrics' in line else dict(service_ready=game.listener is not None)).encode()
+            ready=game.listener is not None and game.sdk_listener is not None and game.udp is not None
+            body=json.dumps(metrics.snapshot() if b'/metrics' in line else dict(service_ready=ready)).encode()
             writer.write(b'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\nContent-Length: '+str(len(body)).encode()+b'\r\n\r\n'+body)
             await asyncio.wait_for(writer.drain(),2)
         except (ValueError,OSError,asyncio.TimeoutError,asyncio.IncompleteReadError,asyncio.LimitOverrunError):pass

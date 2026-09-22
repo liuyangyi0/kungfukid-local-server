@@ -23,7 +23,11 @@ from .wire import GameDecoder,Message,ProtocolError,encode_game,sdp_header,read_
 
 class NativeDatagrams(asyncio.DatagramProtocol):
     def __init__(self,service):self.service=service
-    def connection_made(self,transport):self.service.udp=transport
+    def connection_made(self,transport):self.transport=transport;self.service.udp=transport
+    def error_received(self,exc):
+        if self.service.metrics:self.service.metrics.counts['udp_socket_error']+=1
+    def connection_lost(self,exc):
+        if self.service.udp is getattr(self,'transport',None):self.service.udp=None
     def datagram_received(self,data,peer):
         s=self.service
         began=time.monotonic();wire_size=len(data)
@@ -68,7 +72,7 @@ class NativeService:
         self.admission=admission;self.game_port=game_port;self.udp_port=udp_port
         self.sdk_port=sdk_port;self.sdk_listener=None
         self.udp_login_verifier=udp_login_verifier or admission.resolve_udp;self.event_sink=event_sink or (lambda _:None)
-        self.idle_seconds=public_policy.idle_seconds if public_policy else idle_seconds;self.listener=None;self.udp=None;self.tasks=set();self.writers=set();self.sequence=0
+        self.idle_seconds=public_policy.idle_seconds if public_policy else idle_seconds;self.listener=None;self.udp=None;self.udp_sender=None;self.tasks=set();self.writers=set();self.sequence=0
         policy=datagram_policy or DatagramPolicy()
         self.ingress=IngressBudget(policy=policy,clock=clock)
         self.rejections=RejectionSummary(self.event_sink,clock=clock,seconds=policy.summary_seconds)
@@ -97,7 +101,20 @@ class NativeService:
             if grant is None or grant.transport_udp is None:raise AuthError('encrypted UDP binding absent')
             self.admission.validate(grant);data=grant.transport_udp.seal(data)
         if self.udp:
-            self.udp.sendto(data,peer)
+            # A duplicated nonblocking handle owns the SAME bound UDP endpoint.
+            # Windows Proactor queues every overlapped send completion serially;
+            # a fanout burst otherwise builds seconds of latency in Python.
+            # UDP is atomic: EWOULDBLOCK drops one datagram, never a partial or
+            # replayed record. No unbounded application send queue is created.
+            if self.udp_sender is not None:
+                try:self.udp_sender.sendto(data,peer)
+                except (BlockingIOError,InterruptedError):
+                    if self.metrics:self.metrics.counts['udp_kernel_pressure_drop']+=1
+                    return
+                except OSError:
+                    if self.metrics:self.metrics.counts['udp_socket_error']+=1
+                    return
+            else:self.udp.sendto(data,peer)
             if self.metrics:
                 self.metrics.udp_tx_bytes+=len(data)
                 self.metrics.counts['udp_tx_packets']+=1
@@ -108,7 +125,10 @@ class NativeService:
             self.listener=(await BoundedListener(self.host,self.game_port,self.game,self.connections).start() if self.public_policy else await asyncio.start_server(self.game,self.host,self.game_port))
             self.game_port=self.listener.sockets[0].getsockname()[1]
             self.udp,_=await asyncio.get_running_loop().create_datagram_endpoint(lambda:NativeDatagrams(self),local_addr=(self.host,self.udp_port))
-            if self.public_policy:self.udp.get_extra_info('socket').setsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF,4*1024*1024)
+            if self.public_policy:
+                endpoint=self.udp.get_extra_info('socket');endpoint.setsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF,4*1024*1024)
+                self.udp_sender=endpoint.dup();self.udp_sender.setblocking(False)
+                self.udp_sender.setsockopt(socket.SOL_SOCKET,socket.SO_SNDBUF,4*1024*1024)
             self.udp_port=self.udp.get_extra_info('sockname')[1]
             self.admission.game_port=self.game_port;self.admission.udp_port=self.udp_port
             self.sdk_listener=(await BoundedListener(self.host,self.sdk_port,self.sdk,self.connections).start() if self.public_policy else await asyncio.start_server(self.sdk,self.host,self.sdk_port))
@@ -123,6 +143,7 @@ class NativeService:
         with contextlib.suppress(OSError):self.rejections.flush(force=True)
         if self.sdk_listener:self.sdk_listener.close();await self.sdk_listener.wait_closed();self.sdk_listener=None
         if self.listener:self.listener.close();await self.listener.wait_closed();self.listener=None
+        if self.udp_sender:self.udp_sender.close();self.udp_sender=None
         if self.udp:self.udp.close();self.udp=None
         for writer in tuple(self.writers):writer.close()
         tasks=list(self.tasks)
@@ -137,6 +158,7 @@ class NativeService:
             await asyncio.sleep(.01 if self.metrics else 1)
             now=time.monotonic()
             if self.metrics:self.metrics.observe('loop_lag',max(0,now-last-.01))
+            if self.metrics:self.metrics.counts['listener_errors']=sum(getattr(s,'errors',0) for s in (self.listener,self.sdk_listener))
             last=now
             with contextlib.suppress(OSError):self.rejections.flush()
             if self.public_policy and now-maintenance>=1:self.admission.prune();self.admission.hub.expire();maintenance=now
@@ -190,30 +212,35 @@ class NativeService:
             decoder=GameDecoder(header_validator=validate_header)
         raw_writer=writer
         last_rx=time.monotonic();accepted_at=last_rx;rate_start=last_rx;rate_count=0;partial_since=None
+        admission_limit=self.public_policy.admission_seconds if self.public_policy else 10
         async def send(messages):
             if not messages:return
-            reservation=object()
+            reservation=object();encoding_task=None
             try:
                 if self.outgoing:self.outgoing.set(reservation,sum(2*(len(m.payload)+128) for m in messages),group=grant.uid)
                 async with lock:
                     for message in messages:
                         if self.public_policy and len(message.payload)>4096:
                             if self.encode_waiters>=self.public_policy.encode_workers+self.public_policy.encode_waiters:raise ProtocolError('encoding budget')
-                            self.encode_waiters+=1
+                            self.encode_waiters+=1;delegated=False
                             try:
                                 await self.encode_slots.acquire()
                                 task=asyncio.create_task(asyncio.to_thread(encode_game,message));self.encode_tasks.add(task)
+                                encoding_task=task
                                 def encoded(done):
-                                    self.encode_tasks.discard(done);self.encode_slots.release()
+                                    self.encode_tasks.discard(done);self.encode_slots.release();self.encode_waiters-=1
                                     if not done.cancelled():done.exception()
-                                task.add_done_callback(encoded)
+                                task.add_done_callback(encoded);delegated=True
                                 data=await asyncio.shield(task)
-                            finally:self.encode_waiters-=1
+                            finally:
+                                if not delegated:self.encode_waiters-=1
                         else:data=encode_game(message)
                         writer.write(data)
                     await asyncio.wait_for(writer.drain(),2)
             finally:
-                if self.outgoing:self.outgoing.release(reservation)
+                if self.outgoing:
+                    if encoding_task is not None and not encoding_task.done():encoding_task.add_done_callback(lambda _:self.outgoing.release(reservation))
+                    else:self.outgoing.release(reservation)
         async def pulse():
             heartbeat=0
             while True:
@@ -233,19 +260,20 @@ class NativeService:
                     reader,writer,outer=await self.protection.accept(reader,writer,GAME,header_timeout=2 if self.public_policy else 10)
             if lease:lease.promote(outer.uid)
             while True:
-                timeout=max(.001,10-(time.monotonic()-accepted_at)) if grant is None else self.idle_seconds
+                timeout=max(.001,admission_limit-(time.monotonic()-accepted_at)) if grant is None else self.idle_seconds
                 if self.public_policy and partial_since is not None:timeout=min(timeout,max(.001,self.public_policy.admission_seconds-(time.monotonic()-partial_since)))
                 data=await asyncio.wait_for(reader.read(65536),timeout)
                 if not data:decoder.eof();break
                 if self.incoming:self.incoming.set(read_owner,4*(len(decoder.buffer)+len(data)))
                 for message in decoder.feed(data):
+                    partial_since=None # any trailing partial belongs to a NEW frame
                     now=time.monotonic()
                     if now-rate_start>=1:rate_start=now;rate_count=0
                     rate_count+=1
                     if rate_count>5000:raise ProtocolError('message rate')
                     last_rx=now
                     if grant is None:
-                        if now-accepted_at>=10:raise AuthError('native_login_timeout')
+                        if now-accepted_at>=admission_limit:raise AuthError('native_login_timeout')
                         if message.id==0 and not message.payload:continue
                         if outer is not None and hashlib.sha256(message.payload[17:49]).digest()!=outer.credential_digest:raise AuthError('encrypted game identity mismatch')
                         grant=self.admission.resolve(message)
