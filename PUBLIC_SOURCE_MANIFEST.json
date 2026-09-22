@@ -488,8 +488,8 @@
     },
     {
       "path": "server/kk_local/native_crypto.py",
-      "bytes": 6654,
-      "sha256": "ebffe8a6e935786c0ec8898a52ee1ddb1bf5ce9b77e13dba91e7038a813794a7"
+      "bytes": 6397,
+      "sha256": "5f0999974d5d2782035ea9e2672d30f1e0bb90b4bf7d470d5fb2ee1b8fc930f1"
     },
     {
       "path": "server/kk_local/native_relay.py",
@@ -498,8 +498,8 @@
     },
     {
       "path": "server/kk_local/native_service.py",
-      "bytes": 11175,
-      "sha256": "b6f0c7fd6c2ae4f1dd491f06df42e7d89e496ef70afd51bcd72776f8f156cd5a"
+      "bytes": 12440,
+      "sha256": "f6f56c74f6a1b61f2c22035f05f2cca295f81c3afdeed1cacb42a9360bf74e3c"
     },
     {
       "path": "server/kk_local/ordinary_quests.py",
@@ -1238,13 +1238,13 @@
     },
     {
       "path": "tools/client-lab/native-cloud-ticket/adapter.cpp",
-      "bytes": 25741,
-      "sha256": "5909775787fc068f3000bc1fdf5016f72a81ac02350ed7252105553812d045c6"
+      "bytes": 30332,
+      "sha256": "c7f15582270cfb71489b6264feb3356955affa0962649b7be890633d7588aeec"
     },
     {
       "path": "tools/client-lab/native-cloud-ticket/adapter.def",
-      "bytes": 298,
-      "sha256": "7a33e1cb31faea7604a35a03565ff4ac5538fda670567930b0a57cbbdab03fdc"
+      "bytes": 355,
+      "sha256": "d789ac28a8e6bc9b6fbf6edf781cea76c795ab6aa622fc0cc84641230e6e60a6"
     },
     {
       "path": "tools/client-lab/native-cloud-ticket/record_crypto.hpp",
@@ -1253,13 +1253,13 @@
     },
     {
       "path": "tools/client-lab/native-cloud-ticket/socket_transport.hpp",
-      "bytes": 19632,
-      "sha256": "0e30dd798a1a541100844144bcd3536314944df981476ec4acacedc0a3f50b1d"
+      "bytes": 6922,
+      "sha256": "10d2865bdb8c67a0d00967fb87a8f0f5ac74fd3348c7feb4c7ad28fcde0640c8"
     },
     {
       "path": "tools/client-lab/native-cloud-ticket/Build.ps1",
-      "bytes": 1408,
-      "sha256": "1f3a50a3412f76d662a82fec7c6af813d4ee1f34fcc6035dbd3f9f027084626b"
+      "bytes": 1675,
+      "sha256": "13619abfa6333118d84b496cad8d4e58aab6dc7c68a0ad9bdda89d145755b88d"
     },
     {
       "path": "tools/client-lab/native-cloud-ticket/launcher.example.json",
@@ -1268,13 +1268,13 @@
     },
     {
       "path": "tools/client-lab/native-cloud-ticket/README.md",
-      "bytes": 9868,
-      "sha256": "619f9f2ffdb3c0b3dd4f2f2a2d5ecd7dacbbf661a17bde01d9eda9492453ce32"
+      "bytes": 12384,
+      "sha256": "2f368afe79d2dd2e07080812d70c05cf8573bae71a5bbb51cf37c26cc94159aa"
     },
     {
       "path": "tools/client-lab/NativeCloudHandoff.cs",
-      "bytes": 21750,
-      "sha256": "99503478296dfa568c6b87c5a9607eb51f0d517eae8ead194fbc5637880ec24c"
+      "bytes": 22382,
+      "sha256": "761122e00bba6d1fcc364df7189f22ce47567552b52623e69333ade7dc586515"
     },
     {
       "path": "tools/client-lab/LocalAccountWindow.cs",
@@ -1288,8 +1288,8 @@
     },
     {
       "path": "tools/client-lab/Set-KkNativeEgress.ps1",
-      "bytes": 7358,
-      "sha256": "55e6d5c4db413ef176a8445febab978432ed413db4db4c3ca0a3fb27e43eaa56"
+      "bytes": 5758,
+      "sha256": "f7ca358adb556fcbbcbbea899903e2416275f30999f6633315667ae9fde8140b"
     },
     {
       "path": "tools/client-lab/Test-KkNativeEgress.ps1",
@@ -1298,8 +1298,8 @@
     },
     {
       "path": "tools/client-lab/Test-NativeCloudHandoff.ps1",
-      "bytes": 4231,
-      "sha256": "cf8e469470490dbe0aa123941157a780b955acc929cc5862c8c8fc97be5673fa"
+      "bytes": 4603,
+      "sha256": "0f05cd5406e1f05d65e867137720b2d57bea8adb6d2876b760b6efae46ece864"
     },
     {
       "path": "tools/client-lab/Test-NativeEncryptedTransport.py",
@@ -1313,8 +1313,58 @@
     },
     {
       "path": "docs/UPDATE_20260922.md",
-      "bytes": 4031,
-      "sha256": "b08a06d1912182d32f9dc3996269edda8bec4c517576bd2fcc2cc828bc92f072"
+      "bytes": 4901,
+      "sha256": "fdaf9f7d35cb98f25c15542de030c73fcbb935563eafc47dccb3d3486bf794fe"
+    },
+    {
+      "path": "server/kk_local/native_udp_policy.py",
+      "bytes": 2585,
+      "sha256": "b41fb54d8c7a9ecb1f920cb192dc99436f57e66250455320cf98aaaa0d004f38"
+    },
+    {
+      "path": "server/tests/test_native_udp_policy.py",
+      "bytes": 2776,
+      "sha256": "f5ccc55f2e3bcad884b5048eecfbc3d8de64e58765fa0580befa63ec8145be38"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/socket_io.hpp",
+      "bytes": 22015,
+      "sha256": "c26383c6d7dc7be6c3c2b20ac8afe64dbff5e0eb435ccba1ce1ec523b4642894"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/socket_queue_contract.hpp",
+      "bytes": 3858,
+      "sha256": "ba8235c4dc9268c04a30bc8ca89541c0d682eb6081f4df59be93ce115ab51f13"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/hook_transaction.hpp",
+      "bytes": 3004,
+      "sha256": "582095d58dce2467dd3567c5529f2783fa9744fca6c49be684ba05f04b0c482c"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/hook_transaction_contract.hpp",
+      "bytes": 4390,
+      "sha256": "6732f54acac9581eb50fef41a802724e9b7832f2c794b8bc0c40f9ff81e2442e"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/model_module.cpp",
+      "bytes": 150,
+      "sha256": "b7d044a1ad6b2214f0ba8afefb45d4ee9fc517b0e93a9039be6fea22245781a1"
+    },
+    {
+      "path": "tools/client-lab/KkNativeEgressTransaction.ps1",
+      "bytes": 4316,
+      "sha256": "89f5664a0da8321208755b41726e48496b3676b7191be3c62fd26da97b831c96"
+    },
+    {
+      "path": "tools/client-lab/KkNativeEgressWindows.ps1",
+      "bytes": 10504,
+      "sha256": "7e01ef2225d4eeebcbf383522af46cfa750aa8586b9a79f537cabe7951f404aa"
+    },
+    {
+      "path": "tools/client-lab/Test-KkNativeEgressTransaction.ps1",
+      "bytes": 5403,
+      "sha256": "b5046a81a01a068afa66cb133509b534726d1d837db6d83b434b7edee855c251"
     }
   ],
   "excludes": [
