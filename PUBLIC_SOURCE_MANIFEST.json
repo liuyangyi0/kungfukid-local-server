@@ -8,8 +8,8 @@
     },
     {
       "path": "server/tests/test_battle_remaining_layouts.py",
-      "bytes": 3483,
-      "sha256": "53aaea18be2aa1fd72b148d051101decc78f0e103f2c26288b8732140fb9124b"
+      "bytes": 4934,
+      "sha256": "68432afd8a85cdc9ee7a597338dc282fb0cb8f5f1bb6556fd80aeb352827ca11"
     },
     {
       "path": "server/deploy/VALIDATION.md",
@@ -153,8 +153,8 @@
     },
     {
       "path": "server/kk_local/layouts.py",
-      "bytes": 19352,
-      "sha256": "8f0e02a33cff22fcdccf63ad913c326c50353323bb8cda17288d587e878fb88d"
+      "bytes": 19645,
+      "sha256": "a357df0aa798929f5f81dfdd66ee1c993c61c8742c1dce590f69ea28028afde7"
     },
     {
       "path": "server/kk_local/maps.py",
@@ -433,8 +433,8 @@
     },
     {
       "path": "docs/SERVICE.md",
-      "bytes": 16657,
-      "sha256": "8616547107dde59161164ef86c14846245ad72cad61464fdc3fbac35fcc51a69"
+      "bytes": 17284,
+      "sha256": "2dbd775a7e87e803ea894c62f79c752b772c93fbfdebca07c7007918fa1954a8"
     },
     {
       "path": "docs/CLIENT_COMPATIBILITY.md",
@@ -538,8 +538,8 @@
     },
     {
       "path": "server/kk_local/battle_receipts.py",
-      "bytes": 7713,
-      "sha256": "91942697ffa42e854866c693e1b58ad0f950fe21c3f7ad243532f5ee8883ee82"
+      "bytes": 7995,
+      "sha256": "37066d7f2128fbd337183769ae8aad50ec22de83894f9f8860dd74b33ca312a3"
     },
     {
       "path": "server/kk_local/battle_relay.py",
@@ -553,8 +553,8 @@
     },
     {
       "path": "server/kk_local/combat_catalog.py",
-      "bytes": 4100,
-      "sha256": "599c0a136143a2836257a09726507c9558bc35d2d56cd4c39fa0a2fd494d70f5"
+      "bytes": 5860,
+      "sha256": "5a3bf0031e6538a91b54ca39f98988fe42984936f5042603c031a82dcf65e8cf"
     },
     {
       "path": "server/kk_local/foster_catalog.py",
@@ -623,8 +623,8 @@
     },
     {
       "path": "server/kk_local/pve.py",
-      "bytes": 10947,
-      "sha256": "8a89b68122349743478b00d187bae4b3b81cbe0f1ee4a50fbce743491ad779dd"
+      "bytes": 11172,
+      "sha256": "0528e3f925d0fa75203762d9209f951f6c61c5b54794ff855f8f366066bbf79d"
     },
     {
       "path": "server/kk_local/quest_rewards.py",
@@ -1003,8 +1003,8 @@
     },
     {
       "path": "server/tests/test_hit_receipt_flow.py",
-      "bytes": 9352,
-      "sha256": "04fdc74499e39b51c80a5250967880a2de57712e7d140c09414340f7043121b2"
+      "bytes": 11890,
+      "sha256": "ae6939fbd7febe2c1e2162f4c4a1c35faf45200e6c82202d2e5984b6b37eb210"
     },
     {
       "path": "server/tests/test_item_workflows_tcp.py",
