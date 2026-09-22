@@ -10,7 +10,7 @@ from .layouts import decode_battle,finite
 from .wire import Message,ProtocolError
 from .lab_settlement import decode_report
 
-LENGTHS={20400:67,20401:47,20403:92,20404:43,20405:183,20407:47}
+LENGTHS={20400:67,20401:47,20402:63,20403:92,20404:43,20405:183,20406:47,20407:47,20408:63}
 
 
 def decode(payload):
@@ -24,6 +24,18 @@ def decode(payload):
         if ident==20400:
             row.update(template=struct.unpack_from('<I',p,47)[0],position=finite(struct.unpack_from('<fff',p,51)),
                        direction_raw=struct.unpack_from('<I',p,63)[0])
+    elif ident==20402:
+        #8279E0 passes words39/43 and addresses51/47 to mode vslot272.
+        #Consumer alone does not prove producer authority or vector semantics.
+        row.update(actor_words_raw=struct.unpack_from('<II',p,39),
+                   parameter_47_raw=struct.unpack_from('<I',p,47)[0],payload_51_63=p[51:63])
+    elif ident==20406:
+        #827FC0 derives actor slot from common sender; no arbitrary target UID.
+        row['mode_arguments_raw']=struct.unpack_from('<II',p,39)
+    elif ident==20408:
+        #827990 only checks exact63 and performs a mode cast; no recovered
+        #state mutation. Remains non-forwardable, not a fabricated success.
+        row['opaque_body']=p[39:63]
     elif ident==20403:
         if p[39]>1:raise ProtocolError('PVE block flag')
         row.update(key=struct.unpack_from('<I',p,40)[0],flag=p[39],corners=finite(struct.unpack_from('<12f',p,44)))

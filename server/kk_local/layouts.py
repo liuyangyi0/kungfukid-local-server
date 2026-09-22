@@ -13,6 +13,7 @@ BATTLE_LENGTHS = {0x1fb8:108, 0x1fb9:94, 8126:71, 0x1fcc:103, 0x1fd6:87, 0x2062:
                   8127:63, 8143:59, 8144:115, 8270:87, 8280:55, 8282:47, 8284:75,
                   8155:334, 8157:55, 8287:63, 8288:55,
                   8294:47, 8295:39, 8296:43, 8297:39,
+                  8395:39,8396:43,8421:139,8452:63,
                   8400:131,8401:123,8402:123,8403:119,8404:51,
                   9000:63,9001:63,9002:63,
                   9500:55,9501:55,9502:55,
@@ -206,6 +207,25 @@ def decode_battle(data):
     elif ident == 8288:
         #828050 only consumes actor identity, conditional on action1013.
         result.update(player=struct.unpack_from('<Q',data,39)[0],opaque_47_55=data[47:55])
+    elif ident==8395:
+        #82C8E0: header-only KOF round/UI start; not a generic battle start.
+        result['mode_family']='kof'
+    elif ident==8396:
+        #82CDC0: local Host gate; actor is common sender, not a second UID.
+        result.update(mode_family='kof',value_39_raw=struct.unpack_from('<I',data,39)[0])
+    elif ident==8421:
+        #828DF0: bounded resource-name slot, raw update context and RW matrix.
+        #Never forward caller-controlled resource/context solely on this shape.
+        name=data[39:71];end=name.find(b'\0')
+        if end<0:raise ProtocolError('unterminated battle resource name')
+        result.update(resource_name_raw=name[:end],resource_padding_raw=name[end+1:],
+                      update_context_raw=struct.unpack_from('<I',data,71)[0],**matrix_payload(data,75))
+    elif ident==8452:
+        #829C80 -> WeaponManagerOwner_create_immediate. Preserve unknown
+        #parameter domains; do not equate these with inventory grants.
+        result.update(owner_words_raw=struct.unpack_from('<II',data,39),
+                      parameter_47_raw=struct.unpack_from('<I',data,47)[0],
+                      creation_words_raw=struct.unpack_from('<III',data,51))
     elif ident == 8294:
         #82D090 ->95C7E0 ->95B880 UI interval arguments; enums not closed.
         result.update(interval_arguments_raw=struct.unpack_from('<II',data,39))
