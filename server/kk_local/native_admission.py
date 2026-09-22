@@ -9,6 +9,7 @@ import hashlib
 import hmac
 import secrets
 import struct
+import time
 
 from .auth import AuthError,token_digest
 from .engine import Engine
@@ -37,20 +38,38 @@ class NativeGrant:
     transport_key:bytes=field(default=b'',repr=False)
     transport_connections:set=field(default_factory=set,repr=False)
     transport_udp:object=field(default=None,repr=False)
+    session_expires:int=0
+    session_deadline:float=0
+    admission_deadline:float=0
 
 
 class NativeAdmission:
-    def __init__(self,auth,*,host,game_port,udp_port,sdk_port=0,hub=None,map_catalog=None,limit=8):
-        if type(limit) is not int or not 1<=limit<=8:raise ValueError('native hub limit1..8')
+    def __init__(self,auth,*,host,game_port,udp_port,sdk_port=0,hub=None,map_catalog=None,limit=8,public_policy=None):
+        if type(limit) is not int or not 1<=limit<=(100 if public_policy else 8):raise ValueError('admission capacity limit')
+        self.public_policy=public_policy
         self.auth=auth;self.host=host;self.game_port=game_port;self.udp_port=udp_port
         self.sdk_port=sdk_port
         self.hub=hub or RoomHub();self.map_catalog=map_catalog;self.limit=limit
         self.grants={};self.by_uid={}
+        self.by_transport={};self.by_sdk={};self.by_udp={};self.by_player={}
+        if public_policy:
+            if not hasattr(auth,'revocation_handlers'):raise ValueError('public admission requires revocation events')
+            auth.revocation_handlers.append(self.revoke_session)
+            self.hub.public_policy=public_policy;self.hub.permanent_battle_rewards_allowed=False
+
+    def revoke_session(self,digest):
+        for grant in tuple(self.grants.values()):
+            if grant.session_digest==digest:self.release(grant)
 
     def validate(self,grant):
         if self.grants.get(grant.credential_digest) is not grant:raise AuthError('native_grant_revoked')
-        now=int(self.auth.clock());row=self.auth.records.session(grant.session_digest)
-        if row is None or row[0]!=grant.uid or row[1]<=now:raise AuthError('invalid_session')
+        now=int(self.auth.clock())
+        if self.public_policy:
+            if now>=grant.session_expires or time.monotonic()>=grant.session_deadline:raise AuthError('invalid_session')
+            if (grant.engine is None or grant.engine.game is None) and time.monotonic()>=grant.admission_deadline:raise AuthError('native_grant_expired')
+        else:
+            row=self.auth.records.session(grant.session_digest)
+            if row is None or row[0]!=grant.uid or row[1]<=now:raise AuthError('invalid_session')
         if grant.engine is None and grant.expires<=now:raise AuthError('native_grant_expired')
         if grant.engine is not None and grant.engine.game is None:
             e=grant.engine
@@ -78,7 +97,10 @@ class NativeAdmission:
         grant=NativeGrant(uid,region_id,source[0],digest,int(self.auth.clock())+120,account,
                           hashlib.sha256(udp_raw).digest(),hashlib.sha256(sdk_raw).digest())
         grant.transport_id=secrets.token_bytes(16);grant.transport_key=secrets.token_bytes(32)
+        grant.session_expires=self.auth.records.session(source[0])[1]
+        grant.session_deadline=time.monotonic()+max(0,grant.session_expires-int(self.auth.clock()));grant.admission_deadline=time.monotonic()+120
         self.grants[digest]=grant;self.by_uid[uid]=grant
+        self.by_transport[grant.transport_id]=grant;self.by_sdk[grant.sdk_credential_digest]=grant;self.by_udp[grant.udp_credential_digest]=grant
         return dict(uid=uid,game_credential=raw.hex(),udp_credential=udp_raw.hex(),expires_at=grant.expires,
                     transport='kk-aesgcm-v1',transport_id=grant.transport_id.hex(),transport_key=grant.transport_key.hex(),
                     sdk_credential=sdk_raw.hex(),sdk_host=self.host,sdk_port=self.sdk_port,
@@ -101,7 +123,7 @@ class NativeAdmission:
     def claim_sdk(self,credential):
         if not isinstance(credential,bytes) or len(credential)!=32:raise AuthError('sdk_credential_rejected')
         digest=hashlib.sha256(credential).digest()
-        grant=next((g for g in self.grants.values() if hmac.compare_digest(g.sdk_credential_digest,digest)),None)
+        grant=self.by_sdk.get(digest)
         if grant is None:raise AuthError('sdk_credential_rejected')
         self.validate(grant)
         if grant.sdk_connected or grant.engine is not None:raise AuthError('sdk_connection_already_used')
@@ -126,6 +148,9 @@ class NativeAdmission:
                                 account_uid=uid,hub=self.hub,map_catalog=self.map_catalog,
                                 advertised_host=self.host)
             grant.engine.grant_authenticated_session()
+            if self.public_policy:
+                from .public_commands import PublicCommands
+                grant.engine.public_commands=PublicCommands(self.public_policy)
         return grant
 
     def resolve_udp(self,data,peer):
@@ -146,7 +171,7 @@ class NativeAdmission:
             if len(text)!=64 or any(c not in '0123456789abcdef' for c in text):raise ValueError()
             digest=hashlib.sha256(bytes.fromhex(text)).digest()
         except (ValueError,UnicodeError):raise AuthError('udp_credential_rejected') from None
-        grant=next((g for g in self.grants.values() if hmac.compare_digest(g.udp_credential_digest,digest)),None)
+        grant=self.by_udp.get(digest)
         if grant is None:raise AuthError('udp_credential_rejected')
         self.validate(grant)
         if (grant.engine is None or grant.engine.game is None or grant.tcp_peer is None or
@@ -163,5 +188,8 @@ class NativeAdmission:
                 if c is not None:e.disconnect(c)
             self.hub.suspended.pop(grant.uid,None);self.hub.engines.pop(grant.uid,None)
         self.grants.pop(grant.credential_digest,None)
+        self.by_transport.pop(grant.transport_id,None);self.by_sdk.pop(grant.sdk_credential_digest,None);self.by_udp.pop(grant.udp_credential_digest,None)
+        for key,value in tuple(self.by_player.items()):
+            if value is grant:self.by_player.pop(key,None)
         grant.transport_key=b'';grant.transport_udp=None;grant.transport_connections.clear()
         if self.by_uid.get(grant.uid) is grant:self.by_uid.pop(grant.uid,None)

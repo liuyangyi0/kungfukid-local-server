@@ -50,8 +50,9 @@ def encode_game(message: Message, key: int = 0) -> bytes:
 
 
 class GameDecoder:
-    def __init__(self):
+    def __init__(self,header_validator=None):
         self.buffer = bytearray()
+        self.header_validator=header_validator
 
     def feed(self, data: bytes) -> list[Message]:
         # Network reader supplies bounded chunks; an incomplete frame is bounded.
@@ -65,6 +66,11 @@ class GameDecoder:
                 raise ProtocolError('invalid game header')
             if mask != (n ^ 0xbbcc) & 0x88aa:
                 raise ProtocolError('invalid game length mask')
+            if self.header_validator and len(self.buffer)>=24:
+                early=blocks(bytes(self.buffer[8:24]),0,True)
+                early_id,_,early_size=struct.unpack_from('<IHI',early)
+                if 16+((early_size+7)&~7)!=n:raise ProtocolError('inner length mismatch')
+                self.header_validator(early_id,early_size)
             if len(self.buffer) < n + 8:
                 break
             body = blocks(bytes(self.buffer[8:8 + n]), 0, True)

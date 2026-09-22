@@ -3,9 +3,9 @@ import json
 from pathlib import Path
 
 
-MODES=('offline','lab','auth','sdo','native')
+MODES=('offline','lab','auth','sdo','native','public')
 PATH_OPTIONS=frozenset(('database','client_root','map_client_root','role_ready_file','runtime',
-                        'events','log','report','grant_plan','experimental_multi_account_config','config','auth_certificate','auth_key'))
+                        'events','log','report','grant_plan','experimental_multi_account_config','config','auth_certificate','auth_key','security_policy'))
 
 
 def _unique_object(pairs):
@@ -65,6 +65,19 @@ def validate_options(mode,args):
         ports=[args.login_port,args.game_port,args.p2p_port]
         if any(type(p) is not int or not 0<=p<=65535 for p in ports):raise ValueError('invalid endpoint port')
         if args.login_port and args.login_port==args.game_port:raise ValueError('distinct login/game TCP ports required')
+    elif mode=='public':
+        import ipaddress
+        from ..public_policy import PublicPolicy
+        for field in ('listen_host','advertised_host'):
+            address=ipaddress.ip_address(getattr(args,field))
+            if address.version!=4 or address.is_multicast or (field=='advertised_host' and address.is_unspecified):raise ValueError('invalid public IPv4 endpoint')
+        ports=[args.auth_port,args.sdk_port,args.game_port,args.udp_port]
+        if any(not 1<=p<=65535 for p in ports) or len(set(ports[:3]))!=3:raise ValueError('public endpoint ports')
+        if not 1<=args.health_port<=65535 or args.health_port in ports[:3]:raise ValueError('health endpoint port')
+        if args.database==':memory:':raise ValueError('persistent public database required')
+        for field in ('auth_certificate','auth_key','security_policy'):
+            if not getattr(args,field):raise ValueError('public security inputs required')
+        args.public_policy=PublicPolicy.load(args.security_policy)
     elif mode=='native':
         if not args.enable_native_adapter_testing:raise ValueError('native adapter testing must be explicit')
         if args.advertised_host!='127.0.0.1':raise ValueError('public native admission is not yet qualified')

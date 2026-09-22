@@ -13,6 +13,7 @@ class DatagramPolicy:
     source_idle:int=60
     bound_rate:int=400
     bound_burst:int=800
+    bound_limit:int=32
     summary_seconds:int=10
     def __post_init__(self):
         if any(type(v) is not int or not 1<=v<=65536 for v in vars(self).values()):raise ValueError('invalid datagram policy')
@@ -34,7 +35,7 @@ class IngressBudget:
         key=(owner,peer) if owner is not None else peer[0]
         rate,burst=(p.bound_rate,p.bound_burst) if owner is not None else (p.unknown_rate,p.unknown_burst)
         if key not in table:
-            if len(table)>=(32 if owner is not None else p.source_limit):table.popitem(last=False)
+            if len(table)>=(p.bound_limit if owner is not None else p.source_limit):table.popitem(last=False)
             table[key]=Bucket(burst,now)
         table.move_to_end(key)
         if not table[key].take(rate,burst,now):return False

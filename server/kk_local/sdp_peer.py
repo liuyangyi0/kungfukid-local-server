@@ -153,7 +153,7 @@ class SdpPeerRouter:
         service.event('udp_peer_control',id=ident,source_peer=source)
         return True
 
-    def observe_selection(self,engine,targets,payload):
+    def observe_selection(self,engine,targets,payload,*,messages=None):
         """Read the known main-game envelope after relay; no extra forwarding.
 
         Small complete frames only. Unknown/fragmented peer bytes remain opaque.
@@ -161,7 +161,8 @@ class SdpPeerRouter:
         """
         if engine.room is None or engine.room.stage not in ('loading','battle') or len(payload)>1024:return
         try:
-            decoder=GameDecoder();messages=decoder.feed(payload);decoder.eof()
+            if messages is None:
+                decoder=GameDecoder();messages=decoder.feed(payload);decoder.eof()
             if len(messages)>8:return
             observations=[]
             for message in messages:

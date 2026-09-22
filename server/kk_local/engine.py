@@ -61,6 +61,8 @@ class Engine:
         self.pending_messages = deque()
         self.pending_bytes = 0
         self.delivery_failed = False
+        self.public_commands=None
+        self.queue_budget=None
         store.snapshot(account_uid)
         if hub is not None:
             hub.attach(self)
@@ -144,15 +146,22 @@ class Engine:
             self.consume_intents.clear()
             self.pending_messages.clear()
             self.pending_bytes = 0
+            if self.queue_budget:self.queue_budget.release(self)
 
     def enqueue(self, message):
         if self.delivery_failed:
             return
-        if len(self.pending_messages)>=1024 or self.pending_bytes+len(message.payload)>2*1024*1024:
+        cap=self.public_commands.policy.per_client_outgoing if self.public_commands else 2*1024*1024
+        if len(self.pending_messages)>=1024 or self.pending_bytes+len(message.payload)>cap:
             self.delivery_failed=True
             self.pending_messages.clear()
             self.pending_bytes=0
+            if self.queue_budget:self.queue_budget.release(self)
             return  # Service pulse closes the slow recipient, never the sender.
+        if self.queue_budget:
+            try:self.queue_budget.set(self,self.pending_bytes+len(message.payload)+24*(len(self.pending_messages)+1),group=self.account_uid)
+            except ProtocolError:
+                self.delivery_failed=True;self.pending_messages.clear();self.pending_bytes=0;self.queue_budget.release(self);return
         self.pending_messages.append(message)
         self.pending_bytes+=len(message.payload)
 
@@ -162,12 +171,14 @@ class Engine:
         out=list(self.pending_messages)
         self.pending_messages.clear()
         self.pending_bytes=0
+        if self.queue_budget:self.queue_budget.release(self)
         return out
 
     def cancel_pending(self, ident):
         """Retire an undelivered server control request once its reply arrived."""
         self.pending_messages=deque(m for m in self.pending_messages if m.id!=ident)
         self.pending_bytes=sum(len(m.payload) for m in self.pending_messages)
+        if self.queue_budget:self.queue_budget.set(self,self.pending_bytes+24*len(self.pending_messages),group=self.account_uid)
 
     def profile_ready(self, c, ready):
         if c.phase == Phase.BOOTSTRAP and c.bootstrap_sent and ready:
@@ -186,6 +197,7 @@ class Engine:
         return self.p2p is not None and self.p2p['expires'] >= self.clock()
 
     def handle(self, c, message):
+        if self.public_commands and not self.public_commands.before(self,c,message):return []
         self.last_consume_event = None
         self.last_chat_event = None
         ident, p = message.id, message.payload

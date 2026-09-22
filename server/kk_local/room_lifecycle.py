@@ -80,6 +80,8 @@ class RoomLifecycle:
     def expire(self):
         hub = self.hub
         for room in list(hub.rooms.values()):
+            if hub.public_policy and room.public_deadline and room.members[room.owner].engine.clock()>=room.public_deadline:
+                hub.leave(room.members[room.owner].engine,acknowledge=True);continue
             from .seat_exchange import expire as expire_seat
             expire_seat(hub,room)
             probe=room.network_probe

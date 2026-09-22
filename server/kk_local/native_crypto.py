@@ -94,11 +94,12 @@ class RecordWriter:
 class NativeProtection:
     def __init__(self,admission):self.admission=admission
     def grant(self,sid):
-        grant=next((g for g in self.admission.grants.values() if g.transport_id==sid),None)
+        index=getattr(self.admission,'by_transport',None)
+        grant=index.get(sid) if index is not None else next((g for g in self.admission.grants.values() if g.transport_id==sid),None)
         if grant is None:raise RecordError('unknown transport')
         self.admission.validate(grant);return grant
-    async def accept(self,reader,writer,channel):
-        header=await asyncio.wait_for(reader.readexactly(HEADER.size),10)
+    async def accept(self,reader,writer,channel,*,header_timeout=10):
+        header=await asyncio.wait_for(reader.readexactly(HEADER.size),header_timeout)
         ch,direction,sid,cid,seq,size=inspect(header)
         if ch!=channel or direction or seq or not any(cid):raise RecordError('connection header')
         grant=self.grant(sid);identity=(channel,cid)

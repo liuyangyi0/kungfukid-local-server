@@ -20,6 +20,8 @@ class NativeRelay:
         for key,value in tuple(self.peers.items()):
             if value is grant:self.peers.pop(key,None)
         self.rates.pop(grant.credential_digest,None)
+        for key,value in tuple(self.admission.by_player.items()):
+            if value is grant:self.admission.by_player.pop(key,None)
 
     def handle(self,grant,data,peer):
         self.admission.validate(grant);e=grant.engine
@@ -41,6 +43,7 @@ class NativeRelay:
                 e.register_p2p(player,secrets.randbelow(0xffffffff)+1,peer)
             grant.udp_peer=peer;self.peers[peer]=grant
             lease=e.p2p;lease['expires']=now+60
+            self.admission.by_player[lease['player']]=grant
             self.emit(sdp_reply(1002,lease['session'],lease['player'],socket.inet_aton(peer[0]),peer[1]),peer)
             return
         lease=e.p2p
@@ -59,11 +62,15 @@ class NativeRelay:
         if extra%4 or extra>64 or not body or data[22] not in (0,1):raise ProtocolError('SDP relay shape')
         if not extra:return
         if e.room is None or not lease.get('bound'):raise AuthError('SDP room binding required')
+        checked_messages=None
+        if self.admission.public_policy:
+            checked_messages=e.public_commands.udp(e,body)
+            if extra>7*4:raise ProtocolError('public fanout limit')
         ids=struct.unpack_from('<'+str(extra//4)+'I',data,24)
         if not all(ids) or len(set(ids))!=len(ids):raise ProtocolError('SDP duplicate target')
         targets=[]
         for player in ids:
-            found=next((g for g in self.admission.grants.values() if g.engine and g.engine.p2p and g.engine.p2p['player']==player),None)
+            found=self.admission.by_player.get(player)
             if found is None or found is grant:raise ProtocolError('SDP target missing')
             self.admission.validate(found);other=found.engine
             if other.room is not e.room or not other.p2p_alive() or not other.p2p.get('bound') or found.udp_peer is None:
@@ -74,4 +81,4 @@ class NativeRelay:
             struct.pack_into('<I',packet,4,target.engine.p2p['session'])
             struct.pack_into('<I',packet,16,target.engine.p2p['player']);packet[23]=0
             self.emit(bytes(packet)+body,target.udp_peer)
-        self.observer.observe_selection(e,targets,body)
+        self.observer.observe_selection(e,targets,body,messages=checked_messages)

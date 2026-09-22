@@ -102,6 +102,7 @@ class RoomRequests:
             if room and c.phase==Phase.ROOM and p==room.request:
                 return []
             require(c.phase==Phase.LOBBY and room is None,'create phase')
+            if hub.public_policy and len(hub.rooms)>=hub.public_policy.rooms:return [packets.room_rejection('room capacity reached')]
             resolved=packets.resolve_room_request(p,engine.map_catalog)
             packets.room_entry(resolved,uid,map_catalog=engine.map_catalog)  # Validate before allocation.
             number=next((i for i in range(1,256) if i not in hub.rooms),None)
@@ -153,6 +154,7 @@ class RoomRequests:
                 return [system_notice('[本地服务] 只有等待房间的房主可以修改设置。')]
             try:updated,reply=packets.update_room_request(room.resolved_request or room.request,p,map_catalog=engine.map_catalog)
             except (ValueError,ProtocolError):return [system_notice('[本地服务] 房间设置无效或地图不可用。')]
+            if hub.public_policy and updated[46] not in (0,1,2,3,5):return [system_notice('[服务] 当前模式未开放。')]
             if room.series and updated[37]>6:return [system_notice('[本地服务] 多回合结果界面最多六名玩家。')]
             if updated==room.resolved_request:return []
             room.request=room.resolved_request=updated

@@ -112,7 +112,7 @@ class BattleResults:
             # Validate every outgoing profile before committing a durable grant.
             for target,profile in profiles.items():result_payload(outcomes,target,profile,reborn_reports=reborn_reports)
             quest_tracking=engine.store.quests.has_rules()
-            if hub.match_point_rewards is not None or quest_tracking:
+            if hub.permanent_battle_rewards_allowed and (hub.match_point_rewards is not None or quest_tracking):
                 profiles=engine.store.award_match_points(room.serial,outcomes,hub.match_point_rewards or {0:0,1:0,2:0},
                     mode=room.request[46],quest_templates=getattr(engine.map_catalog,'quest_templates',{}))
                 awards=engine.store.match_point_awards(room.serial)

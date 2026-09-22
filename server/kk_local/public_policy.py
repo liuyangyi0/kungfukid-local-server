@@ -53,6 +53,10 @@ class PublicPolicy:
         if self.hash_workers!=2 or self.hash_waiters>8:raise ValueError('hash budget limit')
         if self.encode_workers>2 or self.encode_waiters>8:raise ValueError('encode budget limit')
         if self.per_client_outgoing>self.outgoing_bytes:raise ValueError('queue budget order')
+        ceilings=dict(pending_connections=64,pending_per_ip=8,authenticated_connections=400,connections_per_uid=4,
+                      tls_seconds=5,header_seconds=2,admission_seconds=10,idle_seconds=30,hash_wait_seconds=2,
+                      incoming_bytes=64*1024*1024,outgoing_bytes=64*1024*1024,per_client_outgoing=2*1024*1024)
+        if any(getattr(self,key)>maximum for key,maximum in ceilings.items()):raise ValueError('public safety ceiling exceeded')
     @classmethod
     def load(cls,path):
         from .app.configuration import _unique_object

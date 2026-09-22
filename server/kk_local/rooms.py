@@ -65,6 +65,7 @@ class SharedRoom:
     talisman_sequences: dict = field(default_factory=dict)
     pve: object | None = None
     tutorial_pending: bool = False
+    public_deadline: float = 0
 
     @property
     def fighters(self):
@@ -74,6 +75,8 @@ class SharedRoom:
 class RoomHub:
     def __init__(self, *, lab_no_award_settlement=True, match_point_rewards=None, combat_catalog=None, spectator_capacity=0, team_series_rounds=0, network_probe=False,talisman_catalog=None):
         self.engines = {}
+        self.public_policy=None
+        self.permanent_battle_rewards_allowed=True
         self.rooms = {}
         self.next_p2p_id = 1001
         self.suspended = {}
@@ -144,7 +147,7 @@ class RoomHub:
         return self._flow.toggle_spectator(engine, c, message)
 
     def attach(self, engine):
-        if engine.account_uid in self.engines or len(self.engines)>=8:
+        if engine.account_uid in self.engines or len(self.engines)>=(self.public_policy.online if self.public_policy else 8):
             raise ValueError('duplicate or excessive offline account endpoints')
         if self.engines and next(iter(self.engines.values())).store is not engine.store:
             raise ValueError('shared rooms require one transactional Store')

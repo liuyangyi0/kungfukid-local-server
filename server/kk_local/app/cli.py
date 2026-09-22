@@ -45,6 +45,13 @@ def mode_parser(mode):
         p.add_argument('--auth-port',type=int,default=7999)
         p.add_argument('--login-port',type=int,default=8000)
         p.add_argument('--game-port',type=int,default=8001)
+    elif mode=='public':
+        p.description='Versioned authenticated non-ranked public test service; no client attestation'
+        for name in ('database','events','auth-certificate','auth-key','security-policy'):p.add_argument('--'+name,required=True)
+        p.add_argument('--listen-host',default='127.0.0.1');p.add_argument('--advertised-host',default='127.0.0.1')
+        p.add_argument('--auth-port',type=int,default=17999);p.add_argument('--sdk-port',type=int,default=18000)
+        p.add_argument('--game-port',type=int,default=18001);p.add_argument('--udp-port',type=int,default=18001)
+        p.add_argument('--health-port',type=int,default=18090)
     elif mode=='native':
         p.description='Own native wire development: TLS account API; client/UDP adapter qualification pending; loopback only'
         for name in ('database','events','auth-certificate','auth-key'):p.add_argument('--'+name,required=True)
@@ -76,6 +83,8 @@ def runner(mode):
         from .lab import run
     elif mode=='auth':
         from ..auth_service import run
+    elif mode=='public':
+        from .public import run
     elif mode=='native':
         from .native import run
     else:
@@ -119,9 +128,9 @@ def run_mode(mode,argv=None,implementation=None):
 def main(argv=None):
     argv=list(sys.argv[1:] if argv is None else argv)
     if not argv or argv in (['-h'],['--help']):
-        print('Usage: python -m server.kk_local --mode {auth,sdo,offline,lab,native} [mode options]\n'
+        print('Usage: python -m server.kk_local --mode {auth,sdo,offline,lab,native,public} [mode options]\n'
               '       python -m server.kk_local --settings server.json [--check-config]\n'
-              'auth: password API; sdo: original login window; offline/lab: explicit insecure fixtures; native: own-client development.\n'
+              'auth: password API; sdo: original login window; offline/lab: explicit insecure fixtures; native: own-client development; public: invitation-only encrypted service.\n'
               'Use --mode MODE --help for mode options. Legacy offline arguments remain accepted.')
         return
     try:mode,args,check=parse_application(argv)
