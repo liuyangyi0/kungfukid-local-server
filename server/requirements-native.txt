@@ -1,0 +1,2 @@
+# Own native encrypted record service; no OpenKFO runtime dependency.
+cryptography==50.0.1

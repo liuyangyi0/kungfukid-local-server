@@ -1,0 +1,13 @@
+{
+  "schema": "kk-server-settings-v1",
+  "mode": "auth",
+  "options": {
+    "client_root": "../client",
+    "database": "../state/local.sqlite3",
+    "role_ready_file": "../client/kk-roleprop-ready.txt",
+    "events": "../state/events.jsonl",
+    "auth_port": 7999,
+    "login_port": 8000,
+    "game_port": 8001
+  }
+}

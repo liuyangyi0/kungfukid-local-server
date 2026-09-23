@@ -1,0 +1,1513 @@
+{
+  "schema": "kk-public-source-manifest-v1",
+  "source_files": [
+    {
+      "path": "CONTRIBUTING.md",
+      "bytes": 5413,
+      "sha256": "f49650a26150405cc5d8f1f11699a5a99bccc462f2c5148f0cafc56f6bd788a5"
+    },
+    {
+      "path": "server/kk_local/shop_buy_repair.py",
+      "bytes": 2193,
+      "sha256": "ae1bda8c2cb6cfceca5cc6a6eed4c862a364232132692f67109a5beff35c0163"
+    },
+    {
+      "path": "tools/client-lab/LauncherProgram.cs",
+      "bytes": 4273,
+      "sha256": "50c16e54ff4c7321d003d5293d9bea01a383df354e0b48b1e8ea94280883feee"
+    },
+    {
+      "path": "tools/client-lab/launcher.manifest",
+      "bytes": 1020,
+      "sha256": "84b0ff3d471f031e34ea87bd5b15cec19065987c19477f5884070ffdb26ae418"
+    },
+    {
+      "path": "tools/client-lab/Build-KkLauncher.ps1",
+      "bytes": 2618,
+      "sha256": "aeed882ff547e2f5f9740347f8c8ae5c55acc37dc8157555278f4f5332012cf9"
+    },
+    {
+      "path": "tools/client-lab/Install-KkLauncher.ps1",
+      "bytes": 3608,
+      "sha256": "8b5d0518b2d6904b495ef260a061819ee685c2c46b57c356b22d6a672c0b8da0"
+    },
+    {
+      "path": "tools/client-lab/Test-KkLauncherExe.ps1",
+      "bytes": 2655,
+      "sha256": "cb2259c686efe08aa63268a1ab9489105dd94fecefffa1838390fcb1570fa1cd"
+    },
+    {
+      "path": "tools/client-lab/Test-KkLauncherInstall.ps1",
+      "bytes": 2703,
+      "sha256": "3f7b7dd3e6512139090b1c4b3e2d21aa7f33d5f04717f055cd5abb5a9a2a1590"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/stream_observation.hpp",
+      "bytes": 2226,
+      "sha256": "115627b6d4a21e10dda29c0ecde90374c057f60ef5056916c67b36167d5f5d2f"
+    },
+    {
+      "path": "server/tests/test_public_ingress_metrics.py",
+      "bytes": 2734,
+      "sha256": "b9c2fd191edc9db618d7721b1b4f51788884c3e802faecbd855ed1f24933103a"
+    },
+    {
+      "path": "server/tests/test_public_preparation_deadline.py",
+      "bytes": 1452,
+      "sha256": "839795833aa4fe7cc0e2fc38b093e10559d177f3ba08ba61a558dd70cc28bcd5"
+    },
+    {
+      "path": "server/tests/test_public_battle_dispatch.py",
+      "bytes": 14963,
+      "sha256": "f9fe2964ab3622e88e9827c6460a9dcba15db9b56548b60418d579d83c18094e"
+    },
+    {
+      "path": "server/tests/test_battle_remaining_layouts.py",
+      "bytes": 4934,
+      "sha256": "68432afd8a85cdc9ee7a597338dc282fb0cb8f5f1bb6556fd80aeb352827ca11"
+    },
+    {
+      "path": "server/deploy/VALIDATION.md",
+      "bytes": 6058,
+      "sha256": "ad057db6bf84b3ae32c36f22ff6f924ef2c48b9eeea134a9fa639f6fd4f35508"
+    },
+    {
+      "path": "server/kk_local/storage/public_schema.py",
+      "bytes": 2121,
+      "sha256": "b9cdffbffbed42a3103e098d9eaf9787cfde3081ca8433599737e4598beecb26"
+    },
+    {
+      "path": "server/kk_local/storage/public_maintenance.py",
+      "bytes": 1401,
+      "sha256": "9aabcc7bb99d78235eff92a769de2ee105a233311bc1c151c80e9bcfada6aa71"
+    },
+    {
+      "path": "server/kk_local/app/public.py",
+      "bytes": 4767,
+      "sha256": "50bb0fabd6c779522ed9076245afbe624a235b27f133d58a193789bbc9ee66c7"
+    },
+    {
+      "path": "server/kk_local/public_policy.py",
+      "bytes": 6951,
+      "sha256": "f7a2ce07e167b45869dbf39a3aaf9b297eb677db3c90105e76c3a95abeb9b4a0"
+    },
+    {
+      "path": "server/kk_local/public_listener.py",
+      "bytes": 3325,
+      "sha256": "c9d8676a0f3fe10323c44802640d6233a602cd049ba5cc3de2d60932f2d104da"
+    },
+    {
+      "path": "server/kk_local/public_auth.py",
+      "bytes": 3206,
+      "sha256": "0c43cd4b9abe17fb79f64422561a608b2f0a838d17b14aa3e523e5bc375fa8eb"
+    },
+    {
+      "path": "server/kk_local/public_auth_api.py",
+      "bytes": 6539,
+      "sha256": "ada48c2658155687eda8c6440f4236021044d1a8dfc38f6c1adc5f62457fa580"
+    },
+    {
+      "path": "server/kk_local/public_commands.py",
+      "bytes": 6976,
+      "sha256": "c0a194a05f0a474be820d888d93f4ab23858fb585ff61c5b5f970d9990d89257"
+    },
+    {
+      "path": "server/kk_local/public_metrics.py",
+      "bytes": 6638,
+      "sha256": "10eb2c51d2a4e003e0e4a8bfe166ca2cc69434cb255042ae31f01c24c25a0182"
+    },
+    {
+      "path": "server/kk_local/public_admin.py",
+      "bytes": 3966,
+      "sha256": "038100f7725bf1522fca9a74af2ed7d6332c848d7c8fc6c9c370b06a8708988d"
+    },
+    {
+      "path": "server/kk_local/public_client.py",
+      "bytes": 8464,
+      "sha256": "cef4c3f0c5769942f4a6ad20ca4e3613fe02be145513a813ddcd0833502ffeff"
+    },
+    {
+      "path": "server/kk_local/storage/public_access.py",
+      "bytes": 2439,
+      "sha256": "088296dc71c23ef9edea0c6c3fc93a89147e18b7b5e8aa28b3576dbc10819b23"
+    },
+    {
+      "path": "server/configs/public.example.json",
+      "bytes": 472,
+      "sha256": "a6fca8a21306c7a418df40f5b994c6e93b32b7c9b5343229e1862ad9a970c80e"
+    },
+    {
+      "path": "server/configs/public-policy.example.json",
+      "bytes": 78,
+      "sha256": "75dc981125e060506a902f92bd90e4ac4cd9d20435f42e4ce00c09d8f42669a3"
+    },
+    {
+      "path": "server/deploy/kk-public.service",
+      "bytes": 977,
+      "sha256": "8d80e24884384f90d1fee4b2e45eab766d3c191d6b21b74b676027ec13cf91dc"
+    },
+    {
+      "path": "server/deploy/README.md",
+      "bytes": 4410,
+      "sha256": "56aef29d30133d2110b0cccd18ec4880370ecd0a799e06646cf38563f448187b"
+    },
+    {
+      "path": "server/tests/test_public_server.py",
+      "bytes": 10917,
+      "sha256": "f2017854e25b4f7c005099b55fbd1d6f84ac2be416bc637312307ee1c8853e10"
+    },
+    {
+      "path": "server/tests/test_public_security.py",
+      "bytes": 16434,
+      "sha256": "d6e8cf9cdf53b76a51dab10810140258a8272f1be69fc4e6e330726a8c74c27f"
+    },
+    {
+      "path": "server/tools/__init__.py",
+      "bytes": 1,
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "path": "server/tools/public_benchmark.py",
+      "bytes": 17701,
+      "sha256": "ebccec93b6d6cd88ca88f40def5d6a2ec60ce577dae91bfd7c9d3713c92d3633"
+    },
+    {
+      "path": "server/kk_local/__init__.py",
+      "bytes": 53,
+      "sha256": "0162e63f1a0cc7a08af278b427d9320b4e2061c03694231be8c8658fd2c71a8d"
+    },
+    {
+      "path": "server/kk_local/__main__.py",
+      "bytes": 231,
+      "sha256": "48ba8ce874b474de5146a1de7470eda2146db2f2719c8dc56a8b6eb4d5e50fc9"
+    },
+    {
+      "path": "server/kk_local/accounts.py",
+      "bytes": 1632,
+      "sha256": "916baab1baa82cf690d244d35e34e5132849af6ca7cbde54e0921c0d79a2c338"
+    },
+    {
+      "path": "server/kk_local/auth_service.py",
+      "bytes": 6790,
+      "sha256": "981561ce4c5ccdbfa70e6e9437bead010c2a31e5ccccc0820f6efde9d8c60573"
+    },
+    {
+      "path": "server/kk_local/auth.py",
+      "bytes": 12976,
+      "sha256": "a2e4a6d7883c713858dc952d32f907fc117a8958154f9c155da7cd8d55f9d0d8"
+    },
+    {
+      "path": "server/kk_local/chat.py",
+      "bytes": 2803,
+      "sha256": "6ed6182cc478d18ce93f17aaab4c14a83fdeb62b428af809306f575e4c137038"
+    },
+    {
+      "path": "server/kk_local/engine.py",
+      "bytes": 13111,
+      "sha256": "863220104416f05388c76afc2e03ea41d28e8055f58a88a468a010739aa21b09"
+    },
+    {
+      "path": "server/kk_local/layouts.py",
+      "bytes": 19645,
+      "sha256": "a357df0aa798929f5f81dfdd66ee1c993c61c8742c1dce590f69ea28028afde7"
+    },
+    {
+      "path": "server/kk_local/maps.py",
+      "bytes": 10925,
+      "sha256": "0ddad6c62e057bd6a1347a7c741c4e684a4690352e1099d996ff58b376bbb7dd"
+    },
+    {
+      "path": "server/kk_local/menu_layouts.py",
+      "bytes": 12777,
+      "sha256": "b69049c2b0d710636197b8a400769be091791ea8b0656a5a46160bcea2f178d6"
+    },
+    {
+      "path": "server/kk_local/native_identity.py",
+      "bytes": 4715,
+      "sha256": "e6586735c8fb2df8d1339c80f5ebd64c90c81bf441f82d2f6ae1abcd4aa8f5ad"
+    },
+    {
+      "path": "server/kk_local/packets.py",
+      "bytes": 19152,
+      "sha256": "d0361ddc1b50f4cdb980d04315a6a5ed7ee19c5e88b8bb49b940a45c452d3029"
+    },
+    {
+      "path": "server/kk_local/rankings.py",
+      "bytes": 1804,
+      "sha256": "0305e41d32bf90d7c4f19393b52ca798f9c34191801ba131d20f7249d9bffaef"
+    },
+    {
+      "path": "server/kk_local/rooms.py",
+      "bytes": 12826,
+      "sha256": "0fa1be7459cb3ac70bad81a7f5a9181f8e10d74e5f65ab2f6f65bd08acc20e7e"
+    },
+    {
+      "path": "server/kk_local/sdo_identity.py",
+      "bytes": 2035,
+      "sha256": "3c26ea2f33a0529aa6f962d594a6012f2fe8041ea84634a8441472f82fbe650e"
+    },
+    {
+      "path": "server/kk_local/sdo_outer.py",
+      "bytes": 2612,
+      "sha256": "973ab0891fdb4d0058f9f3db1037ac7b9cb8a4485a445ec87e62926b2c5d7b0c"
+    },
+    {
+      "path": "server/kk_local/sdo_password.py",
+      "bytes": 4425,
+      "sha256": "635abf42afb4adee302ac53d5b113ea8f0549fd429626c266f600ed1774c159a"
+    },
+    {
+      "path": "server/kk_local/sdo_service.py",
+      "bytes": 9916,
+      "sha256": "d18048270897ea73e57b798e51e7b1bf96c12423ec25095225c8edd2eb062529"
+    },
+    {
+      "path": "server/kk_local/sdo_wire.py",
+      "bytes": 2721,
+      "sha256": "3709badd6dbc83d8a5d2d46b27ed3afff1db640ddcb02829aeb9ceb6d4dfa4cb"
+    },
+    {
+      "path": "server/kk_local/service.py",
+      "bytes": 23925,
+      "sha256": "f8c5e0c8a82a3ebf8146abe9015533cacbaa2b90845955625410233cf0f70ae4"
+    },
+    {
+      "path": "server/kk_local/shop_catalog.py",
+      "bytes": 5623,
+      "sha256": "2d3d1f1ba776661f8eb270072ad5fff3ee678541da0b53d4f21f940ecca9ee51"
+    },
+    {
+      "path": "server/kk_local/store.py",
+      "bytes": 9594,
+      "sha256": "5bf31c6a86beb44f6e8bba88a0373b2ed47720e534ad60257594a5411a4a4780"
+    },
+    {
+      "path": "server/kk_local/trace_inventory.py",
+      "bytes": 1672,
+      "sha256": "6236feeba0c73fe03504cc4ac85d9a40aedf1275fe2af08999ba00f9998b7305"
+    },
+    {
+      "path": "server/kk_local/wire.py",
+      "bytes": 5348,
+      "sha256": "56223aded0d2f57f6aeb2f2cb1db8dedbf44702808fdf01e1df3d5e860cd6072"
+    },
+    {
+      "path": "server/tests/test_account_endpoints.py",
+      "bytes": 2069,
+      "sha256": "581807a2d2aebc95391e80b84771a8d98964ae24ad51d0f937108ef02abf1acf"
+    },
+    {
+      "path": "server/tests/test_auth.py",
+      "bytes": 14875,
+      "sha256": "e2b5c8196d53c6680854bf41931397283660b546f8b1ab4b1cefecbd30621cbc"
+    },
+    {
+      "path": "server/tests/test_auto_join.py",
+      "bytes": 2045,
+      "sha256": "8a980b6ca2d2a7a7779adf9fb35702d61154d41f5457187a519dbd8ad2b7e33c"
+    },
+    {
+      "path": "server/tests/test_chat.py",
+      "bytes": 5764,
+      "sha256": "cd2d073bec5e62269962e22372ad1cb46442202caf314eff1aeac7dcf7f5eca4"
+    },
+    {
+      "path": "server/tests/test_competitive_rooms.py",
+      "bytes": 4858,
+      "sha256": "035d5b00cf378763b699d6fb7aecc98b65c1c096172a481aa56cb2940a6fb235"
+    },
+    {
+      "path": "server/tests/test_consumption.py",
+      "bytes": 5342,
+      "sha256": "d04c42fbc0f38deac2ceda35a49e1ee4369ee1ed04d38ab7f89dd278dc615371"
+    },
+    {
+      "path": "server/tests/test_equipment_operations.py",
+      "bytes": 4032,
+      "sha256": "c377e9e12c9efff2af5ef05446ac8994fdae5c41e59517b8f8e631b11a2a7d02"
+    },
+    {
+      "path": "server/tests/test_inactive_wealth.py",
+      "bytes": 1862,
+      "sha256": "71ee3f7248f562090f75e341dded98fc7595a856042eb002f51c7bbe218c85db"
+    },
+    {
+      "path": "server/tests/test_local_service.py",
+      "bytes": 23331,
+      "sha256": "0583d5132628739cd5eaf933ff600b2ccaafd0bf92ca8704e3badf586998ea90"
+    },
+    {
+      "path": "server/tests/test_maps.py",
+      "bytes": 5798,
+      "sha256": "6a9ce5a9ada266a87fb2e94622344f142534a1b5eb0b50f8b16448459877cbee"
+    },
+    {
+      "path": "server/tests/test_menu_layouts.py",
+      "bytes": 7923,
+      "sha256": "4a5c30f8e2561db1d32162dde7d46ec2d69aca5a75134a51fafbc161bc33b074"
+    },
+    {
+      "path": "server/tests/test_menu_queries.py",
+      "bytes": 3406,
+      "sha256": "9d32e28afd55b15dba73ebf43e5c0b74095b37569112b0d27f1c44bb03b3535d"
+    },
+    {
+      "path": "server/tests/test_native_rejections.py",
+      "bytes": 1302,
+      "sha256": "13c2f8dfd16238fb024164d9e883858e2f632081b330efa9e1577644137d6b73"
+    },
+    {
+      "path": "server/tests/test_profile_query.py",
+      "bytes": 1436,
+      "sha256": "496a13c63e89c14bb3ffba55c90d0df8a5ff6ff461a9a84a483ab6eed2da16c9"
+    },
+    {
+      "path": "server/tests/test_query_probe.py",
+      "bytes": 2098,
+      "sha256": "2a2a483e5c911b167b093e99b626b4aff4738027657a17b8f8cf7cf61ea5fae1"
+    },
+    {
+      "path": "server/tests/test_rank_layouts.py",
+      "bytes": 1634,
+      "sha256": "d1d59b1ef6c86028882bc1afb3ce06aa2d71f577a296cce84a5cb1b22c4c4e80"
+    },
+    {
+      "path": "server/tests/test_rankings.py",
+      "bytes": 2359,
+      "sha256": "6473e0e8bfbae62af0e3e7276098f2e0dabe38dcd04d6b2a91cac0e9f357572c"
+    },
+    {
+      "path": "server/tests/test_rename.py",
+      "bytes": 2034,
+      "sha256": "e757d28dbc50addcc62d71d071831a6c68a05e02fcf6d3ff5755b8c46a4325e2"
+    },
+    {
+      "path": "server/tests/test_room_removal.py",
+      "bytes": 2365,
+      "sha256": "b33feaf84ea9ef82523bc72a670abbdcde039144907f8e63f38df90ef346343a"
+    },
+    {
+      "path": "server/tests/test_room_settings.py",
+      "bytes": 4889,
+      "sha256": "8697f32f2b31318fb09fb4f57271b7749581844ea936974d67f636d8e4194651"
+    },
+    {
+      "path": "server/tests/test_sdo_service.py",
+      "bytes": 5564,
+      "sha256": "c01f9a252a56745e37b129f7dcc14952f3f8303f843e9d8a1b1dd42274430241"
+    },
+    {
+      "path": "server/tests/test_shared_rooms.py",
+      "bytes": 26420,
+      "sha256": "1064eaf8b142535bf65eb7fdf04c59c94c1917993fd699809f2db9de4c300f3a"
+    },
+    {
+      "path": "server/tests/test_shop_cache_query.py",
+      "bytes": 1499,
+      "sha256": "f561d1410b1505f408358b50fdcd339ecaca504c20bd697fc09556570e6180e7"
+    },
+    {
+      "path": "server/tests/test_shop_catalog.py",
+      "bytes": 2821,
+      "sha256": "e844ae439db7d5393d409dfb18882c7627264de500ffba847b609d80f681cd67"
+    },
+    {
+      "path": "server/tests/test_shop_purchase.py",
+      "bytes": 7118,
+      "sha256": "9f1772622e1bc3f398a368db3371cf6abc664025c3ccfbaa17972720262fa4d1"
+    },
+    {
+      "path": "server/tests/test_shop_store.py",
+      "bytes": 4002,
+      "sha256": "0935d775ba12244d8d765596a31852d3a621065c33903a5d4a36cb3d721cf072"
+    },
+    {
+      "path": "server/tests/test_training_rewards.py",
+      "bytes": 3653,
+      "sha256": "adbc741dcd1ef4cecd47744656995614b4101b24c20e6ef39b31d81f7ce24ca7"
+    },
+    {
+      "path": "server/__init__.py",
+      "bytes": 82,
+      "sha256": "f1ea2e449ca296cb536a802e14c305bfbddc725dd842dc0236c74f5057bac950"
+    },
+    {
+      "path": "docs/protocol/reference_transport.py",
+      "bytes": 9846,
+      "sha256": "83a53e6db5d4feee9d6cdcbf42ef29993ce4dc081e268f0a3f5a91f99d3d38ea"
+    },
+    {
+      "path": "client-adapter/src/kk_sdo_request_adapter.cpp",
+      "bytes": 6473,
+      "sha256": "988b10a9209ebf8f8c2fa0d810fa023e239f0875b534fda38b83310a7e1fc1ce"
+    },
+    {
+      "path": "client-adapter/src/kk_sdo_input_provider.cpp",
+      "bytes": 8588,
+      "sha256": "2e7b8828f1ad7c6618b0c375dc29fd75e1b17e23acd7c49941e0de77e2e9f8de"
+    },
+    {
+      "path": "client-adapter/src/kk_sdo_http_path_probe.cpp",
+      "bytes": 2392,
+      "sha256": "f0962828668603088e2bd5d0d9187e96d7ed22cf3cbe714f13adf42930a88cd3"
+    },
+    {
+      "path": "client-adapter/src/kk_roleprop_observer.cpp",
+      "bytes": 1310,
+      "sha256": "6317bdc61a993ddede07c13945dbb2745ae48f319fdd23149c8024d9f27dbde3"
+    },
+    {
+      "path": "README.md",
+      "bytes": 9778,
+      "sha256": "b4c592190b0c749f167d31f6a8b2952701e2c3bbd793846373f7659f915cea3f"
+    },
+    {
+      "path": "requirements.txt",
+      "bytes": 103,
+      "sha256": "848cf7ae33c7e3940ee6b11c286a98ed06eb98ca4d84c8ff46e5c72b078231b4"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 382,
+      "sha256": "8f50aad80dfe7b3c4f1d9a12fa1113ca0e8c88911d404cee468479d843d2a2a0"
+    },
+    {
+      "path": "SECURITY.md",
+      "bytes": 3092,
+      "sha256": "bf3d8db6819d0eee14ad280e532387f7cc2a8fed2d29d0bde53e1adefcd4beca"
+    },
+    {
+      "path": "docs/SERVICE.md",
+      "bytes": 15032,
+      "sha256": "0fa9c85dff27f108d5701c9f2c1f44c9bcd9841e95ec8124034f26e66c54c84f"
+    },
+    {
+      "path": "docs/CLIENT_COMPATIBILITY.md",
+      "bytes": 6155,
+      "sha256": "6cf4ad365aca3a7021b85e75e77e1faf0bb52e10e9eb7991e32b9fa56d3fcca5"
+    },
+    {
+      "path": "client-adapter/build.cmd",
+      "bytes": 1260,
+      "sha256": "361ecfe14e3613f7bf0eb978e3d1049e8f12821ac917cc0998a1291c032b11c1"
+    },
+    {
+      "path": "docs/DEPLOYMENT_WALKTHROUGH.md",
+      "bytes": 6724,
+      "sha256": "83ed2191acff936b222d737bbf858cfc2d2e66189ad2ffc0eaa65ee6ba495301"
+    },
+    {
+      "path": "docs/AI_PROTOCOL_WORKFLOW.md",
+      "bytes": 4993,
+      "sha256": "0887fff266852846546962c0e430b3382e73884556414e32c15bffb9f255f56c"
+    },
+    {
+      "path": "client-adapter/tools/inspect_client.py",
+      "bytes": 5138,
+      "sha256": "05c1ab18b7eff2757d18c6e6b64784d756bc449e9e595f03c503cc42d676db9b"
+    },
+    {
+      "path": "client-adapter/tools/create_local_account.py",
+      "bytes": 1773,
+      "sha256": "1a2c75b968a3d727523eeab0172c87130d5992f2d87069859ec27ca28ca600b3"
+    },
+    {
+      "path": "client-adapter/tests/test_public_tools.py",
+      "bytes": 3419,
+      "sha256": "746c65a0ff3137037ba97609807ba9f02bd7e67bbeb0e400a5a872ffbff2644a"
+    },
+    {
+      "path": "client-adapter/src/kk_inject.c",
+      "bytes": 5000,
+      "sha256": "83cbaf7712e10e5dac90ff6196c61e915e8431f48eb0259837e2c259b582dfe6"
+    },
+    {
+      "path": "client-adapter/tests/sdo_http_contract.py",
+      "bytes": 259,
+      "sha256": "64ade520706bd23819922717a34015156b516f9932bf24c86ddaf489e8a56a89"
+    },
+    {
+      "path": "client-adapter/tests/sdo_outer_password_codec.py",
+      "bytes": 256,
+      "sha256": "d8c202f5343e5981f2352a3236c745b584ee1dd2863ec4fc34c31af59c71e121"
+    },
+    {
+      "path": "client-adapter/tests/sdo_password_bridge.py",
+      "bytes": 259,
+      "sha256": "8356d77fb2f2741c5730f019aa206b714f860ad48b5d95919694e4c1d33e4bad"
+    },
+    {
+      "path": "client-adapter/tests/test_sdo_http_contract.py",
+      "bytes": 1485,
+      "sha256": "642931d0fd51fb610d44e4b24fa2f414b9960214348c28b96bee066c022d691c"
+    },
+    {
+      "path": "client-adapter/tests/test_sdo_outer_password_codec.py",
+      "bytes": 2798,
+      "sha256": "28195187fe3c4545ce1d7a6a687afc0da2ff588be3d411704575c0198b14248b"
+    },
+    {
+      "path": "client-adapter/tests/test_sdo_password_bridge.py",
+      "bytes": 3612,
+      "sha256": "58d933e31c3be871721a7f51c74ce0beeb1e137975d12f57826871bb7f798764"
+    },
+    {
+      "path": "tools/resource-recovery/spf2_index.py",
+      "bytes": 8665,
+      "sha256": "df159b196cd6168d61f3fdfffec3b81118c4b023710364c53541ba6975ed1f64"
+    },
+    {
+      "path": "tools/resource-recovery/spf2_extract.py",
+      "bytes": 7348,
+      "sha256": "ba078c34b7b1f25537c873100f867b4cc8f119ab3f1afc11d838ec376d60b915"
+    },
+    {
+      "path": "tools/resource-recovery/test_spf2_index.py",
+      "bytes": 3244,
+      "sha256": "0dce45f25ec5720cce83de9f2b7a330b0d8e644ad8a12a395c8c46a6f47f1437"
+    },
+    {
+      "path": "tools/resource-recovery/test_spf2_extract.py",
+      "bytes": 2060,
+      "sha256": "3b89ae75e693f5ab8879239ea507121c09260ae9a1ff949212e50b3ea6a3c91c"
+    },
+    {
+      "path": "server/tests/test_client_config_package.py",
+      "bytes": 3758,
+      "sha256": "c7d6c9d93882a4299288dcbf0d33aef600adbeb215b4aaa573ac1c34b1452881"
+    },
+    {
+      "path": "server/kk_local/battle_pairs.py",
+      "bytes": 4366,
+      "sha256": "bc81df609b2e931fcefa6258c53785459d1b39da0b6dbf207d2b2cf44cc09017"
+    },
+    {
+      "path": "server/kk_local/battle_receipts.py",
+      "bytes": 8386,
+      "sha256": "56906e54e08fe4e995118d4997a86d236bfcda65f0ef6ce4db5012b7eb8b2ea9"
+    },
+    {
+      "path": "server/kk_local/battle_relay.py",
+      "bytes": 17078,
+      "sha256": "93ff91099c6878f89ccf763ae76b1fc6dcc0038babfb2de1aca2169d4ac0a462"
+    },
+    {
+      "path": "server/kk_local/battle_results.py",
+      "bytes": 8361,
+      "sha256": "d1d52cf73007b200a37fa1b91701d84683cef54c4cd3a4dda1dd7e73c1ddc770"
+    },
+    {
+      "path": "server/kk_local/combat_catalog.py",
+      "bytes": 7527,
+      "sha256": "95df323187153fbf52d15703823c949d1f9e979f11f2d9d5fc76ebe331d5b705"
+    },
+    {
+      "path": "server/kk_local/foster_catalog.py",
+      "bytes": 4603,
+      "sha256": "32af4b7c9778c165e4277f231a310d4bec730db75fd9d6cba2c841fc3cfb98ff"
+    },
+    {
+      "path": "server/kk_local/foster.py",
+      "bytes": 6110,
+      "sha256": "93f3b00a0b3dc39a936c5861b1bb3751bfe1b5fb5334079ec62e52b970e4ebff"
+    },
+    {
+      "path": "server/kk_local/lab_capture.py",
+      "bytes": 2090,
+      "sha256": "593e2d012bc2d45c76dfeff5678dd63602d4361f25b14e5f6a672f8f04cd4725"
+    },
+    {
+      "path": "server/kk_local/lab_network.py",
+      "bytes": 1351,
+      "sha256": "6d01f0437635945767caf1fbfbf9b2072f69051f15974c85605df9aa82798fc3"
+    },
+    {
+      "path": "server/kk_local/lab_server.py",
+      "bytes": 249,
+      "sha256": "fef491f41fa52d8ae9ff402b259ea296351164fc15d828a2ffbe0b7cb0c24084"
+    },
+    {
+      "path": "server/kk_local/lab_settlement.py",
+      "bytes": 9578,
+      "sha256": "c56a75a6568aab3a394181e7f4b423fd6502ea7a99fe2ce339841f6fb62b7ecb"
+    },
+    {
+      "path": "server/kk_local/mailbox.py",
+      "bytes": 7308,
+      "sha256": "2fbd67458e0ad44eb6128438709bf5e05fefaafe366c9d424d20560b5139ff6e"
+    },
+    {
+      "path": "server/kk_local/native_admission.py",
+      "bytes": 10327,
+      "sha256": "f7360c82cd5cfc10aa6b5e6f721817797c11ba2c1ae6908873c8caadc5e6ade2"
+    },
+    {
+      "path": "server/kk_local/native_auth_api.py",
+      "bytes": 3321,
+      "sha256": "e1f2aa050d30c87835d64ba55832f94feaeeead3e749e485695333acaddf14d9"
+    },
+    {
+      "path": "server/kk_local/native_crypto.py",
+      "bytes": 6528,
+      "sha256": "961749ebfadd663127b701b79d7fea5b932bb6710cdb28836f447c4dc35cad65"
+    },
+    {
+      "path": "server/kk_local/native_relay.py",
+      "bytes": 6261,
+      "sha256": "682a8b3b641ad83b80c093d5ed43587fbe9a994f814fad7a4f1531aa0bea6e51"
+    },
+    {
+      "path": "server/kk_local/native_service.py",
+      "bytes": 23076,
+      "sha256": "d8227f5b0aaf5bc13baf4e2896c3b1520295d2dd492040710c5118ffda742fa7"
+    },
+    {
+      "path": "server/kk_local/ordinary_quests.py",
+      "bytes": 5290,
+      "sha256": "0147a9776e2c7243bbcc3181740911f5aa968a1b8dedbd5a167a2d35b1914188"
+    },
+    {
+      "path": "server/kk_local/pve.py",
+      "bytes": 11172,
+      "sha256": "0528e3f925d0fa75203762d9209f951f6c61c5b54794ff855f8f366066bbf79d"
+    },
+    {
+      "path": "server/kk_local/quest_rewards.py",
+      "bytes": 9412,
+      "sha256": "4cb92aa0a6ab7526bd1d4248eb5a9133fdb1358ab3a9f823944f7dac4a74d391"
+    },
+    {
+      "path": "server/kk_local/quests.py",
+      "bytes": 12389,
+      "sha256": "ed86665893206775f38e1e05a07b16d2b0280267a8dce95709a981ad1a9e542e"
+    },
+    {
+      "path": "server/kk_local/renewal.py",
+      "bytes": 9391,
+      "sha256": "a9fc2057c716ff6ca3ad17a6c85f7d782b34aa3873d243b68de36471bed326c7"
+    },
+    {
+      "path": "server/kk_local/room_flow.py",
+      "bytes": 13335,
+      "sha256": "a30ab00821ef78c5fbc58e7535c324efc7b0226edc981d29862d97ab3f2e04d0"
+    },
+    {
+      "path": "server/kk_local/room_lifecycle.py",
+      "bytes": 10163,
+      "sha256": "835675be5d784a6315aeb2ea7b32034eeb867cb0f7ac58e46e937b6da40ca2e0"
+    },
+    {
+      "path": "server/kk_local/room_requests.py",
+      "bytes": 14545,
+      "sha256": "dd04f7e5b01ff2bc52146aadf50e19639d5c2eaa566b97df2628b40bde8b78c7"
+    },
+    {
+      "path": "server/kk_local/sdp_peer.py",
+      "bytes": 10515,
+      "sha256": "312dfa779fefb03f48dd4c85efb3e4a611953ee043b3de141ca237dcc2ea60be"
+    },
+    {
+      "path": "server/kk_local/seat_exchange.py",
+      "bytes": 2840,
+      "sha256": "6e5a63e0e77492774cd145f315adb321625f7804f9b2d4d4c8d33e7169252b93"
+    },
+    {
+      "path": "server/kk_local/shop_setup.py",
+      "bytes": 5060,
+      "sha256": "1fd2337d89998c65f263f5fe02d31e5bcbdff544d10d71a94d3deabc17538e86"
+    },
+    {
+      "path": "server/kk_local/shop.py",
+      "bytes": 9313,
+      "sha256": "5c394b35ec92d200eba483139c06dfb72f2ae5c81ccd9c15bb6e5f925b9d7188"
+    },
+    {
+      "path": "server/kk_local/stage_catalog.py",
+      "bytes": 4726,
+      "sha256": "14b8653ad0c5e26b6d4b019b4518fe5749fe8dc6c22f11d38dd029a90253fd02"
+    },
+    {
+      "path": "server/kk_local/talisman_repair.py",
+      "bytes": 6622,
+      "sha256": "8bc0222125aaee63554b27e65b86c59dc2c97a3b340bef38c8f72bde065ff380"
+    },
+    {
+      "path": "server/kk_local/talisman.py",
+      "bytes": 5881,
+      "sha256": "a534ab43a5c8027313790e6a98fc8a608d46d1ec494115ebb68761a120eee6cc"
+    },
+    {
+      "path": "server/kk_local/team_series.py",
+      "bytes": 6290,
+      "sha256": "ee7d32bc69d7c4bea4d5577362d6bb420b5d7e2c5d73b15187cf45cafe3eaa68"
+    },
+    {
+      "path": "server/kk_local/title_rewards.py",
+      "bytes": 8120,
+      "sha256": "f83a86194a1b7be3c7a3a33a4fd4d61865f8fc6fd11d0a7237d4f6d9247a803d"
+    },
+    {
+      "path": "server/kk_local/tutorial.py",
+      "bytes": 4565,
+      "sha256": "9cbc5c2deb972ff73f6468a3ee12fca1734f757868bdd80478e23632ca117562"
+    },
+    {
+      "path": "server/kk_local/weapon_upgrade.py",
+      "bytes": 7989,
+      "sha256": "3677c2773378f8bd706453bbdd574ce00d3a26dad744b1b0084b67764299ad83"
+    },
+    {
+      "path": "server/kk_local/app/__init__.py",
+      "bytes": 217,
+      "sha256": "87b43542e72d9dc1f3650437dbac014189f3a54066690bc05467a82eab2af70e"
+    },
+    {
+      "path": "server/kk_local/app/cli.py",
+      "bytes": 7779,
+      "sha256": "dac1311decba24157f9be37c22a0db1d0240cf49941fc0b7424baa3bdbb856b2"
+    },
+    {
+      "path": "server/kk_local/app/configuration.py",
+      "bytes": 8862,
+      "sha256": "8508a42ac7531cdde0f702bc00b17fddd5151aff09a8668c6bac0ff75d4eea2e"
+    },
+    {
+      "path": "server/kk_local/app/features.py",
+      "bytes": 2553,
+      "sha256": "84f591cd699b5302d7127cc92dd8ae5c8c2a9dedaa861d68bc5945ee4061cbc5"
+    },
+    {
+      "path": "server/kk_local/app/lab.py",
+      "bytes": 2558,
+      "sha256": "aa58731f7d225214186ae5aa1e4dcaa57f85a064be984d62716ff9faa236f2e7"
+    },
+    {
+      "path": "server/kk_local/app/lifecycle.py",
+      "bytes": 1393,
+      "sha256": "1e9860c1a868d34b44a8f37055c98b6c5b7da669b60f59245cfb7e13de6635cc"
+    },
+    {
+      "path": "server/kk_local/app/native.py",
+      "bytes": 1917,
+      "sha256": "8b45b43a7f1b26416e3d6fd3cdb5d7bfe0dc9fb04a3c59fb3d84e9fea08a98fd"
+    },
+    {
+      "path": "server/kk_local/app/offline.py",
+      "bytes": 2708,
+      "sha256": "fc1d24e9adc6afaffffa9adc3a0fee47b4b432410e1c8a004ddfd95e6f8f3dc4"
+    },
+    {
+      "path": "server/kk_local/features/__init__.py",
+      "bytes": 86,
+      "sha256": "25271f1a9a6a3f23abec1b1bc3aeca61318258696c3c56d79325b8e185a137c7"
+    },
+    {
+      "path": "server/kk_local/features/catalog.py",
+      "bytes": 3147,
+      "sha256": "8c3609449b857029cc37cc9ed0794f4bd79b771232944f2546f6d9ed7fe09e88"
+    },
+    {
+      "path": "server/kk_local/features/inventory_repair.py",
+      "bytes": 1623,
+      "sha256": "10fc86d8c75b55c17b1c9b8da1df1bc47a886f96caeb479be081d3eeb9235155"
+    },
+    {
+      "path": "server/kk_local/features/inventory.py",
+      "bytes": 7281,
+      "sha256": "6fef99b7bbeec3ccbd47cbca0dd21ea24acfcfedd9b9495471702c81cfde19e6"
+    },
+    {
+      "path": "server/kk_local/features/profiles.py",
+      "bytes": 4499,
+      "sha256": "12e835aa64891a8f49f24d6416d598d8f293dcd4f4df516d3d6db4837fca001c"
+    },
+    {
+      "path": "server/kk_local/features/progression.py",
+      "bytes": 5645,
+      "sha256": "80935840b3a604467c9fb5658ee096b5edcd5abbef49640ebe3bddd94927e65a"
+    },
+    {
+      "path": "server/kk_local/handlers/__init__.py",
+      "bytes": 511,
+      "sha256": "a6340b0bb093bb4e8e1a5e7c786c71c82204117825838e3860cd33e92d390c4a"
+    },
+    {
+      "path": "server/kk_local/handlers/consumption.py",
+      "bytes": 2366,
+      "sha256": "7144db514885aa9969786b398866705e30db339f95e0bcb57f537f0306de61cf"
+    },
+    {
+      "path": "server/kk_local/handlers/directory.py",
+      "bytes": 2540,
+      "sha256": "083123e3a1d8e5fffd2611fecc219ad2e05f478a375fd6be00aead54839a3747"
+    },
+    {
+      "path": "server/kk_local/handlers/equipment.py",
+      "bytes": 2501,
+      "sha256": "bc1ee0981b798295684d76587df56b23d5023324431fd31436fb96d15cabdb43"
+    },
+    {
+      "path": "server/kk_local/handlers/lobby.py",
+      "bytes": 6155,
+      "sha256": "39374d1cfe6bb7a0fb33884042fdb92699d2608f171f447e34fd6d45ac62e356"
+    },
+    {
+      "path": "server/kk_local/handlers/session.py",
+      "bytes": 3259,
+      "sha256": "7d56ea0d71704277d6745792bfa794bf1ec79e6b42b618e431eb4006980f3703"
+    },
+    {
+      "path": "server/kk_local/handlers/single_room.py",
+      "bytes": 7461,
+      "sha256": "04e35c863341303408da17332665cad676499e63ca931ba8450a9fbf70f40fc5"
+    },
+    {
+      "path": "server/kk_local/handlers/social.py",
+      "bytes": 2538,
+      "sha256": "3624e56f639a98c814ae4c801840b25d97fa8b1b85ef9490fedef82140b97c2e"
+    },
+    {
+      "path": "server/kk_local/handlers/training.py",
+      "bytes": 1732,
+      "sha256": "cd595c1fa70f0e49c1864bcb1237fe0236d2654feb07a95e1cf523e25244d380"
+    },
+    {
+      "path": "server/kk_local/storage/__init__.py",
+      "bytes": 83,
+      "sha256": "2be3dcdf048ce0597235af19f89f5d4b152b504b7c1d5edb39a92bf3a5fd02e5"
+    },
+    {
+      "path": "server/kk_local/storage/auth.py",
+      "bytes": 3993,
+      "sha256": "9803de0c0630963d1bf165edd91bcdfa37825b14ddbfa6c5843a7976fec850ca"
+    },
+    {
+      "path": "server/kk_local/storage/commerce.py",
+      "bytes": 5398,
+      "sha256": "0504f2d127d2b938d93830cda04b9a0b69e17ed5402c3a2962ade53a3d87df1f"
+    },
+    {
+      "path": "server/kk_local/storage/inventory.py",
+      "bytes": 4128,
+      "sha256": "f210ea73906b9677c11afb3f3fb95407955bf28f0b0082bb0ac19d8da5d8959d"
+    },
+    {
+      "path": "server/kk_local/storage/mail.py",
+      "bytes": 2550,
+      "sha256": "0d40bcf7c5b8d8c886518db8e8e3b46c2cdad9ece70c08a26232d16de3213151"
+    },
+    {
+      "path": "server/kk_local/storage/maintenance.py",
+      "bytes": 976,
+      "sha256": "3095756552b87165f9fa1c4f7cde3701da786477551cd2218b10e99fcc3c6353"
+    },
+    {
+      "path": "server/kk_local/storage/profiles.py",
+      "bytes": 2214,
+      "sha256": "15b1fc25b9b82b99d5f6e808a51af11c3b718b94dc42c61f2917afd09752c6e0"
+    },
+    {
+      "path": "server/kk_local/storage/progression.py",
+      "bytes": 2413,
+      "sha256": "006ab2ecac08d9f1d5f3bcb159d5bfd1c7de403eed1b2b4cb17122089fc8897b"
+    },
+    {
+      "path": "server/kk_local/storage/quests.py",
+      "bytes": 4987,
+      "sha256": "42d3337ce3d330019401114ac6218740a5a92cc2750ec9db7deb35026c3b342d"
+    },
+    {
+      "path": "server/kk_local/storage/renewal.py",
+      "bytes": 2652,
+      "sha256": "e4492b596334980067d12e01d12e17fc56218a18079e6c610561c015c84290a5"
+    },
+    {
+      "path": "server/kk_local/storage/schema.py",
+      "bytes": 11174,
+      "sha256": "16a958646fa16ab6191e28353fb30ad8b10c014fba50b2e0fbbcd642597f40d4"
+    },
+    {
+      "path": "server/kk_local/storage/talisman.py",
+      "bytes": 1717,
+      "sha256": "91cc10bd3472feac7cb0d0a728a066bd441743375be1d7a8596f1d50ed86440b"
+    },
+    {
+      "path": "server/kk_local/storage/titles.py",
+      "bytes": 2261,
+      "sha256": "e3c672ad1753ab75ddcef6c5cf528d8719ae94997bee1db8f6c70539e1b6610b"
+    },
+    {
+      "path": "server/kk_local/storage/transactions.py",
+      "bytes": 540,
+      "sha256": "d8e45a1535ac8df6cd98432520705203aaff6ea9502504550aaac93dec49ae09"
+    },
+    {
+      "path": "server/kk_local/storage/upgrades.py",
+      "bytes": 1082,
+      "sha256": "f51f7734d5dafe3817afe0f595ec17950db410a8c5e097f10d77c99afe26ab14"
+    },
+    {
+      "path": "server/tests/test_active_roster_refresh.py",
+      "bytes": 2145,
+      "sha256": "58e236fe380ef4b42a24a45832cb52d52507e6dc0debb8ad177f8db10f656d4b"
+    },
+    {
+      "path": "server/tests/test_application_config.py",
+      "bytes": 6146,
+      "sha256": "289912f93cbaea32ff8b5b30cadc4cb7c0ce7c8d5a52d76c8e9122f956f4b1c7"
+    },
+    {
+      "path": "server/tests/test_application_lifecycle.py",
+      "bytes": 6312,
+      "sha256": "559aca7dee675a5efff45dae98243aabb2044ab8a3e1db056bb4d239f7ed2b3d"
+    },
+    {
+      "path": "server/tests/test_auth_storage_boundaries.py",
+      "bytes": 11250,
+      "sha256": "56af24a0e4ce605934bf650bf675e7ab6fa596c3e59250bf97ab0728cc56a60f"
+    },
+    {
+      "path": "server/tests/test_battle_aux_layouts.py",
+      "bytes": 3337,
+      "sha256": "cd1ad60d034747828aec4245856c1b52de341cf1b7f12d842f839a7957fd8530"
+    },
+    {
+      "path": "server/tests/test_battle_clock.py",
+      "bytes": 2987,
+      "sha256": "c0fba3ab5cdbaefc51621716041dca35604c028364adff8488cec9d2460a5a19"
+    },
+    {
+      "path": "server/tests/test_battle_effect_relay.py",
+      "bytes": 4926,
+      "sha256": "ef1e588cf5201fa990329b18066403c67b14449f707822183228262f91b115f5"
+    },
+    {
+      "path": "server/tests/test_battle_host_designation.py",
+      "bytes": 2138,
+      "sha256": "3593a32fa374feb09dfd38c1aed3df75b58fe7bf46d2866599d7f5906dcea029"
+    },
+    {
+      "path": "server/tests/test_battle_object_layouts.py",
+      "bytes": 4952,
+      "sha256": "94629b6ad2c6cab94e672118c3b1b3ac579238707cfaf7627599072a1e22fa26"
+    },
+    {
+      "path": "server/tests/test_battle_relay_counters.py",
+      "bytes": 5608,
+      "sha256": "2a7136d767b796bdcf702afb1a4dda7e495f0ebb63ad4c426611475067370fb1"
+    },
+    {
+      "path": "server/tests/test_battle_snapshot_layouts.py",
+      "bytes": 4792,
+      "sha256": "48f63dbbb1d93d88e793541c17ae730fdd7e53c53d0681691c2c6928dcd900af"
+    },
+    {
+      "path": "server/tests/test_channel_return.py",
+      "bytes": 2886,
+      "sha256": "33b784d1a7c9ea9ca1e143dd2c25affcd1dfa810f77eaa4ba42b025204b91255"
+    },
+    {
+      "path": "server/tests/test_collectible_spawn.py",
+      "bytes": 2443,
+      "sha256": "f0591974653cd8d97443d131458c86a4d01dbdb5e81971ba76943b0a98e70bcb"
+    },
+    {
+      "path": "server/tests/test_coordinator_boundaries.py",
+      "bytes": 4169,
+      "sha256": "e43874501ec8c09e6ee5f098eb7aa8924d2bbbbfc1e13713f993849fdbd73e66"
+    },
+    {
+      "path": "server/tests/test_death_notice.py",
+      "bytes": 3512,
+      "sha256": "cc81a74846c9ab1fd26fe35c7437c1607d2aeed7999e240ac8a7c3c2ce237799"
+    },
+    {
+      "path": "server/tests/test_elimination_settlement.py",
+      "bytes": 2647,
+      "sha256": "875d2eb85197d179b754f0e9958ef84bf30adcca791371ec8390d7b8feaa28b7"
+    },
+    {
+      "path": "server/tests/test_expiry_query.py",
+      "bytes": 1064,
+      "sha256": "5516b1339a4cdec72cdce51b63818646c58714cc6e7ddc2f57d01092c39b567a"
+    },
+    {
+      "path": "server/tests/test_foster.py",
+      "bytes": 9134,
+      "sha256": "248cc4885f4dd2b688c72954ec1817d491201d49a80d5c1b58570d54d1a8759e"
+    },
+    {
+      "path": "server/tests/test_handler_dispatch.py",
+      "bytes": 5673,
+      "sha256": "99d85749c1267b9ce888cef06d74ae6b5f5494647d025c6fe36fcd4f592dc595"
+    },
+    {
+      "path": "server/tests/test_historical_inventory.py",
+      "bytes": 8145,
+      "sha256": "363358ce3b4da1361b8fc53eef35d8f2d9aeb27531bfb0b5f72b558a42ad77a9"
+    },
+    {
+      "path": "server/tests/test_hit_receipt_flow.py",
+      "bytes": 11890,
+      "sha256": "ae6939fbd7febe2c1e2162f4c4a1c35faf45200e6c82202d2e5984b6b37eb210"
+    },
+    {
+      "path": "server/tests/test_item_workflows_tcp.py",
+      "bytes": 3760,
+      "sha256": "1a582b10a8dae4c8edc8eab3b49ee85058792211fe2d2a744b462af568c88930"
+    },
+    {
+      "path": "server/tests/test_lab_capture.py",
+      "bytes": 2760,
+      "sha256": "b54437546f30bfa077d1cbb21244a8f89368fc921f3be30628e27b3ca200c653"
+    },
+    {
+      "path": "server/tests/test_lab_network.py",
+      "bytes": 5902,
+      "sha256": "c6a2904f8130ca80c12c663335a43deed9fb124ec1f461e5e8f12f3637909b2c"
+    },
+    {
+      "path": "server/tests/test_lab_settlement.py",
+      "bytes": 6314,
+      "sha256": "67aca54a0ebff4412d689515988555bac14f5b1025f6f4ca6bbe8d16fc803c8b"
+    },
+    {
+      "path": "server/tests/test_mailbox.py",
+      "bytes": 5651,
+      "sha256": "bc114fa72956ec32e810845f2ceb1a4b0250335c71bd33fd315b7a1fdf7c4c91"
+    },
+    {
+      "path": "server/tests/test_match_point_rewards.py",
+      "bytes": 6140,
+      "sha256": "385ef736fb87c10ad5f335d0ae1fcf66f335cf9db738b6e307b0069741d65152"
+    },
+    {
+      "path": "server/tests/test_mode16_protocol.py",
+      "bytes": 6474,
+      "sha256": "9c7640efbefbd492d7ea15ff761714f9ad11b7d49ed76cc1b81a87ff2403c2d4"
+    },
+    {
+      "path": "server/tests/test_mp_snapshot_relay.py",
+      "bytes": 2669,
+      "sha256": "5f2d0c6f161aee1be27d843cf5775865d57ebe49d011d3ebfc5d5fe22424e690"
+    },
+    {
+      "path": "server/tests/test_native_cloud.py",
+      "bytes": 19885,
+      "sha256": "1c1f9ebae4d66068284b1a8cac9baec72ac7f7200c4df19aa50b908b489c7e27"
+    },
+    {
+      "path": "server/tests/test_native_crypto.py",
+      "bytes": 9378,
+      "sha256": "ba39747d0e2fadeda4e127578e0b7ba09e5246db108c1d9047a4957877b0ecd2"
+    },
+    {
+      "path": "server/tests/test_network_probe.py",
+      "bytes": 2712,
+      "sha256": "ce8b74398076226c25b582d75150d9bce4916385099c9f516cc8c03e96741891"
+    },
+    {
+      "path": "server/tests/test_observer_rooms.py",
+      "bytes": 7506,
+      "sha256": "2879df0643ff04f6c3ddc578b0921fb860e9f806d2b3014bdf7a0060b4cee986"
+    },
+    {
+      "path": "server/tests/test_observer_tcp.py",
+      "bytes": 6023,
+      "sha256": "7737c8725bf057c486801863c70df510442a55ed6b9529396ce44c3aab67a264"
+    },
+    {
+      "path": "server/tests/test_ordinary_quests_tcp.py",
+      "bytes": 2498,
+      "sha256": "ab0b26f1c2e48fb889696d35e9934ce538840e38ef4a72ab468134eeb8c34201"
+    },
+    {
+      "path": "server/tests/test_ordinary_quests.py",
+      "bytes": 9580,
+      "sha256": "5897a2784bad1a77899cb38c080d821a83811d639c367092e263335a277663c9"
+    },
+    {
+      "path": "server/tests/test_owned_battle_relay.py",
+      "bytes": 4669,
+      "sha256": "cc5df24e2aedad163775bf757b92e703f1e3d68aa9e205886493884428a056fa"
+    },
+    {
+      "path": "server/tests/test_owned_slip.py",
+      "bytes": 2468,
+      "sha256": "7eddae5a4e1dc41d154d1085c79bb1efa108fba2d884439a111394ba2ebfb464"
+    },
+    {
+      "path": "server/tests/test_pair_transform.py",
+      "bytes": 4061,
+      "sha256": "b6877f6810fecc8db89801a361e2a04793d938cf4001d397964895be3b800d9d"
+    },
+    {
+      "path": "server/tests/test_peer_pair_selection.py",
+      "bytes": 3279,
+      "sha256": "1d5e642fb6cd38ec31ef1b5045e78cb28f57db1263be6278287084354e06c4c6"
+    },
+    {
+      "path": "server/tests/test_pickup_handshake.py",
+      "bytes": 5482,
+      "sha256": "cdde7344bc269eb9c9f336881e68c363bcc31e975098e23dc44a695d0712ca33"
+    },
+    {
+      "path": "server/tests/test_player_directory.py",
+      "bytes": 3552,
+      "sha256": "0e25c877c0d8841b3b259896fecfd557f162e9943e9f30589918774736f81faa"
+    },
+    {
+      "path": "server/tests/test_profile_progression_boundaries.py",
+      "bytes": 6538,
+      "sha256": "b57df4d829a50897642a5b874e916ce8db9cdcaf656e1f44fde27c1a9ee357ed"
+    },
+    {
+      "path": "server/tests/test_projectile_protocol.py",
+      "bytes": 7143,
+      "sha256": "426ca343a5dc6b2572005b927897709006852193cb56df24cb75934ab8f0ca6d"
+    },
+    {
+      "path": "server/tests/test_public_player_queries.py",
+      "bytes": 3728,
+      "sha256": "a30a41e3ce86a8c8c8db13162c524a85325b9b875287074c7a3d0e15fd524e4d"
+    },
+    {
+      "path": "server/tests/test_pve_tcp.py",
+      "bytes": 6618,
+      "sha256": "3f86742577515f4c3ca688b71d8a08353aa8706a5dfec41d78b55231e7a1b3a3"
+    },
+    {
+      "path": "server/tests/test_pve.py",
+      "bytes": 9961,
+      "sha256": "af6971a1c6bffaadaa7ff1ad0e694bc539be26b86ef05c2af350117d066468d7"
+    },
+    {
+      "path": "server/tests/test_quest_rewards_tcp.py",
+      "bytes": 2376,
+      "sha256": "bf29bf639c6f0da66f278e745387ba4fcb701b986fbfeb02245d17e9f37eb997"
+    },
+    {
+      "path": "server/tests/test_quest_rewards.py",
+      "bytes": 12128,
+      "sha256": "33fd2bfcdefeabfea34bbc406542c53263bcebf5ee589bdde1b25997618e9ea4"
+    },
+    {
+      "path": "server/tests/test_quest_storage_boundaries.py",
+      "bytes": 8506,
+      "sha256": "c19f6cbb4fc60b2ee29e1e4a8cc2cbd64961ac76bf05481eeef8530b95e02c50"
+    },
+    {
+      "path": "server/tests/test_quests_tcp.py",
+      "bytes": 2500,
+      "sha256": "22268d121952a8afe482c2f882703326dfcbcf702aa0fc9d34f7e64f35229ac1"
+    },
+    {
+      "path": "server/tests/test_quests.py",
+      "bytes": 9738,
+      "sha256": "194b7590469e3ae8e13267c1272427b350575ec92b61be896896f42bdee73099"
+    },
+    {
+      "path": "server/tests/test_renewal.py",
+      "bytes": 6674,
+      "sha256": "577e94379036a5ce03524be48df3087d759ba3f8b8574d760f2518bf11cd410f"
+    },
+    {
+      "path": "server/tests/test_result_report_request.py",
+      "bytes": 2489,
+      "sha256": "fbb77caf576436d7b6f33fe9e02dd0af2de22ac731d8be8a90cd81ed3214988d"
+    },
+    {
+      "path": "server/tests/test_room_activity.py",
+      "bytes": 3398,
+      "sha256": "2c34b5929617fc81114832c0e11f96c1641170d4b6d286559ef3b141b621367a"
+    },
+    {
+      "path": "server/tests/test_room_directory_race.py",
+      "bytes": 2341,
+      "sha256": "5a62b58cf8d6dff4f688bba7a0e030dab260317b8b099fcb5626a6b4757265ba"
+    },
+    {
+      "path": "server/tests/test_room_directory_request.py",
+      "bytes": 2210,
+      "sha256": "a636f852d32402e084b90136036fcb12757b96a524746bcedb6d8ac80c18b50a"
+    },
+    {
+      "path": "server/tests/test_room_invites.py",
+      "bytes": 4525,
+      "sha256": "f6cab530382cc7f28aab6236d09bf6617989b59bec4c3366b45942c74e75095e"
+    },
+    {
+      "path": "server/tests/test_room_lifecycle.py",
+      "bytes": 6503,
+      "sha256": "bc21da9107471e696a3f983ba6fd9152115f22f1717135b61db3eaf9f83943ae"
+    },
+    {
+      "path": "server/tests/test_room_owner_transfer.py",
+      "bytes": 3701,
+      "sha256": "ed5ac6aa374fb035dac1b3ef241f3fc048ce07e1cd38e70dc2d734dc63db93ba"
+    },
+    {
+      "path": "server/tests/test_room_timeout.py",
+      "bytes": 2831,
+      "sha256": "d52488e543085fdb958e039cc13d30ff0b02c062d56f12fa4f20a0e41ad64720"
+    },
+    {
+      "path": "server/tests/test_sdp_peer.py",
+      "bytes": 7806,
+      "sha256": "0a7bf5d1578e2480a3681fd678671711b8840b7c338e3c542017bcaed50cfcbb"
+    },
+    {
+      "path": "server/tests/test_seat_exchange.py",
+      "bytes": 2448,
+      "sha256": "380114a5b8dac8fa5581716c49fa1f71ae28a9f8c7b6d89180dbafae89ddc5e8"
+    },
+    {
+      "path": "server/tests/test_shop_commerce_tcp.py",
+      "bytes": 3385,
+      "sha256": "cd9d710ba8af7bdf8a1b76cc6ac95bb46562f7f1a9fd41c9afd3efaaade85d39"
+    },
+    {
+      "path": "server/tests/test_shop_commerce.py",
+      "bytes": 8412,
+      "sha256": "fd584f7ecd868b87137ce8b82c673adf01ff23a261529f12ca06c1e362242895"
+    },
+    {
+      "path": "server/tests/test_shop_setup.py",
+      "bytes": 7076,
+      "sha256": "78bae6409a41d9b612f733a3ea17402ef0aa9857907bec93ae49830365899f48"
+    },
+    {
+      "path": "server/tests/test_spectator_toggle_boundary.py",
+      "bytes": 1455,
+      "sha256": "e89119422a16c0f1c987d15dd77958220877da26eef16fda707e49d6296220a2"
+    },
+    {
+      "path": "server/tests/test_stage_catalog.py",
+      "bytes": 1897,
+      "sha256": "dd08318d8d289c35f356d73526484d9f2351f05fcef627124d5e935f0aed5a53"
+    },
+    {
+      "path": "server/tests/test_state_hit_layouts.py",
+      "bytes": 5403,
+      "sha256": "39fa9b24f8d20c6fdb1ceb2ed6db05eb52ac2e9c707614cda8e8ea61fc4d5629"
+    },
+    {
+      "path": "server/tests/test_storage_boundaries.py",
+      "bytes": 5647,
+      "sha256": "1784b55337fb0c5675e837abe536d84872f05f49e28a7164b27991e13d6d6500"
+    },
+    {
+      "path": "server/tests/test_survival_settlement.py",
+      "bytes": 3739,
+      "sha256": "27d1fe13364f674c284eff7468853f60e826c841dd7aeb304d09555461efa62f"
+    },
+    {
+      "path": "server/tests/test_talisman_repair.py",
+      "bytes": 5860,
+      "sha256": "6f722e689d1a513bafb066e9356ffffa668fbefe36430204afc8cc47861fefd9"
+    },
+    {
+      "path": "server/tests/test_talisman.py",
+      "bytes": 5770,
+      "sha256": "ec2bb772106806833a5888d261bfb7043451ef5c8f34f8ea70820af4a016ece3"
+    },
+    {
+      "path": "server/tests/test_team_positions.py",
+      "bytes": 3858,
+      "sha256": "c653e983d0e7513976a9c98ae529e76f068dbf20ec4803d5df38dbbb38cf4b85"
+    },
+    {
+      "path": "server/tests/test_team_series.py",
+      "bytes": 10179,
+      "sha256": "d20a791e2651355f8572e487add388d05461b7b62c30f698698cbd40b8167f27"
+    },
+    {
+      "path": "server/tests/test_team_wire_fields.py",
+      "bytes": 1061,
+      "sha256": "b47331199abe87fefd910d67222eae23a3cf2b815708c9b5b2f7e9fea5f34683"
+    },
+    {
+      "path": "server/tests/test_title_rewards.py",
+      "bytes": 6241,
+      "sha256": "eb9c0e583d3a4cd76dd0e993e0b5fce0c3c7bda393ecf33985babb4fad8c9a4a"
+    },
+    {
+      "path": "server/tests/test_tutorial_tcp.py",
+      "bytes": 3203,
+      "sha256": "3264fa0b9ef54267cd94425a72d62256b4bc16bdb3fae6dc8dd90fa8f6b04652"
+    },
+    {
+      "path": "server/tests/test_tutorial.py",
+      "bytes": 5273,
+      "sha256": "d4c84a674772bd5697b504e7ced1d862078f92809b6ecbe5d79c4757285cc18b"
+    },
+    {
+      "path": "server/tests/test_weapon_instance_identity.py",
+      "bytes": 3959,
+      "sha256": "122d04bb8edc04a13c71f3d113ec56a520763abb801e058238a897559c40aa8e"
+    },
+    {
+      "path": "server/tests/test_weapon_switch_protocol.py",
+      "bytes": 2516,
+      "sha256": "3d80fea3d12ed7881934ddad0fcf2543548533775bd7adeb51a10115ea3ba9a1"
+    },
+    {
+      "path": "server/tests/test_weapon_throw_relay.py",
+      "bytes": 2793,
+      "sha256": "9839add0139766d6d857d16727c3331cc842fb43769f2088f374741d487146e1"
+    },
+    {
+      "path": "server/tests/test_weapon_upgrade_tcp.py",
+      "bytes": 2587,
+      "sha256": "9ebe67b87ae4159d35eba44692ff4bf9df74489a41c2faeaa95ecda8c0969797"
+    },
+    {
+      "path": "server/tests/test_weapon_upgrade.py",
+      "bytes": 10015,
+      "sha256": "1101e860c770bd6967a5bf0d3cd13a9690594008e77d9b99c13cc6ef602d8d34"
+    },
+    {
+      "path": "server/tests/test_world_chest_handshake.py",
+      "bytes": 3570,
+      "sha256": "cbb73acaef0b8fa3ac1a348966ee7c5a5ab42e0d0ba47b8e20bfee9e7ea241e2"
+    },
+    {
+      "path": "server/requirements-native.txt",
+      "bytes": 91,
+      "sha256": "bd70566623339e7fa3578299994ae3526eadbf967b619872c939718a1bca5336"
+    },
+    {
+      "path": "server/configs/auth.example.json",
+      "bytes": 318,
+      "sha256": "0880f83cd62ade3050df70c9ee0cd443d0f0a6486e76cf38185c9f9187c0d502"
+    },
+    {
+      "path": "server/configs/sdo.example.json",
+      "bytes": 331,
+      "sha256": "ee927ad56096a9e82c17f729b768b8452464c2779c1273ba1659a38e4cc5323f"
+    },
+    {
+      "path": "server/configs/native.example.json",
+      "bytes": 485,
+      "sha256": "40f2f5810843c3ebe8249aa2b7dafb8ce993843d5874d3b51cdbea8d80ded2ec"
+    },
+    {
+      "path": "server/examples/offline-accounts.json",
+      "bytes": 398,
+      "sha256": "65722c9984705b4c0c29d626bcea9ef4c1e663d727c5d5024f40b7462061c468"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/adapter.cpp",
+      "bytes": 34851,
+      "sha256": "c4014c210a23aa52cfdec913f8e36024c8d90ac515669352ee901bb97463e78a"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/adapter.def",
+      "bytes": 497,
+      "sha256": "3d2de85f20c245c612779fc56d72a00232f25664657cd4ef557f648864098c4c"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/record_crypto.hpp",
+      "bytes": 5235,
+      "sha256": "8c5364ac5c1bec07767fd1e2053b994d7467087a7da79c417ab88f763d61aac3"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/socket_transport.hpp",
+      "bytes": 8552,
+      "sha256": "f11269b9243d74bc1d771f1daadd697692570abed6311d8caac48ba329988215"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/Build.ps1",
+      "bytes": 1675,
+      "sha256": "13619abfa6333118d84b496cad8d4e58aab6dc7c68a0ad9bdda89d145755b88d"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/launcher.example.json",
+      "bytes": 494,
+      "sha256": "461a1d5b8c9b808a80279adbd014942785bc1269cd50b20f9af4d559e1e2e23a"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/README.md",
+      "bytes": 11693,
+      "sha256": "6e5b207df30c5dd79668620014ff5124a0904092084b09a38e77a8e97a20a2da"
+    },
+    {
+      "path": "tools/client-lab/NativeCloudHandoff.cs",
+      "bytes": 31813,
+      "sha256": "3ebf6e3e37ac6019d6cdd67e35dbf18a40f2f6571db6535ec2df0af78bc35e12"
+    },
+    {
+      "path": "tools/client-lab/LocalAccountWindow.cs",
+      "bytes": 37819,
+      "sha256": "cc4fc682667bd8c55918df700f990a8cc797125711912c5ef674d6673ae08b09"
+    },
+    {
+      "path": "tools/client-lab/Run-KkLocalAccountWindow.ps1",
+      "bytes": 2896,
+      "sha256": "cfd014b06c700185acfb6ff7df6c9ffa5ca305e2f79dc69fae56eef880b36681"
+    },
+    {
+      "path": "tools/client-lab/Test-NativeCloudHandoff.ps1",
+      "bytes": 6197,
+      "sha256": "c1ace4170154ae332b7e0d95d8785ddfa86b428ddd964dbc0ecee3560f2e80fe"
+    },
+    {
+      "path": "tools/client-lab/Test-NativeEncryptedTransport.py",
+      "bytes": 3836,
+      "sha256": "5710d36ab2e094381e79c9f9d61d2e932767b8af177893ce009ad6056e992e93"
+    },
+    {
+      "path": "tools/client-lab/Test-KkLocalAccountWindow.ps1",
+      "bytes": 14262,
+      "sha256": "2550ea3f2c3c84adb1d3d1c33dbf2abb660e734a921ea4e4b7c41aa58705c09c"
+    },
+    {
+      "path": "server/kk_local/native_udp_policy.py",
+      "bytes": 2619,
+      "sha256": "a54cf91892f288e2953b9f9874e5cffbe7061523ad36d14bef6b329514dd80b4"
+    },
+    {
+      "path": "server/tests/test_native_udp_policy.py",
+      "bytes": 2776,
+      "sha256": "f5ccc55f2e3bcad884b5048eecfbc3d8de64e58765fa0580befa63ec8145be38"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/socket_io.hpp",
+      "bytes": 24494,
+      "sha256": "88f1a31645ab2bd2cde2498836e6ebf28ed1d9ce05851dff99caba2b5867e693"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/socket_queue_contract.hpp",
+      "bytes": 3858,
+      "sha256": "ba8235c4dc9268c04a30bc8ca89541c0d682eb6081f4df59be93ce115ab51f13"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/hook_transaction.hpp",
+      "bytes": 3585,
+      "sha256": "ea78039eb9cb5709aeeaf8ed0fd5973c55d188d1bc5d830b05356433ba8f0d19"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/hook_transaction_contract.hpp",
+      "bytes": 6351,
+      "sha256": "afff37d3e60403db199fd320a0fded8007702da038454ec57083e6af35bc4417"
+    },
+    {
+      "path": "tools/client-lab/native-cloud-ticket/model_module.cpp",
+      "bytes": 150,
+      "sha256": "b7d044a1ad6b2214f0ba8afefb45d4ee9fc517b0e93a9039be6fea22245781a1"
+    }
+  ],
+  "excludes": [
+    "client binaries",
+    "assets",
+    "databases",
+    "credentials",
+    "IDA/PDB/dumps/traces",
+    "original git history"
+  ],
+  "scan": {
+    "text_allowlist": true,
+    "private_key_token_and_personal_path_patterns": "passed",
+    "limitations": "pattern scan is not exhaustive; code and synthetic fixtures require human review"
+  }
+}

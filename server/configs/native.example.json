@@ -1,0 +1,17 @@
+{
+  "schema": "kk-server-settings-v1",
+  "mode": "native",
+  "options": {
+    "enable_native_adapter_testing": true,
+    "database": "../.data/native-development.sqlite3",
+    "events": "../.data/native-development-events.jsonl",
+    "auth_certificate": "../.data/tls/server.pem",
+    "auth_key": "../.data/tls/server-key.pem",
+    "advertised_host": "127.0.0.1",
+    "auth_port": 17999,
+    "sdk_port": 18000,
+    "game_port": 18001,
+    "udp_port": 18001,
+    "max_players": 8
+  }
+}

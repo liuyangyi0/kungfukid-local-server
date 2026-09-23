@@ -1,0 +1,14 @@
+{
+  "schema":"kk-server-settings-v1",
+  "mode":"public",
+  "options":{
+    "database":"../.data/public.sqlite3",
+    "events":"../.data/public-events.jsonl",
+    "auth_certificate":"../.data/tls/server.pem",
+    "auth_key":"../.data/tls/server-key.pem",
+    "security_policy":"public-policy.example.json",
+    "listen_host":"127.0.0.1",
+    "advertised_host":"127.0.0.1",
+    "auth_port":17999,"sdk_port":18000,"game_port":18001,"udp_port":18001,"health_port":18090
+  }
+}

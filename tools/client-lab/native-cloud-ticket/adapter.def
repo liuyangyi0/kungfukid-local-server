@@ -1,0 +1,10 @@
+LIBRARY kk_native_cloud_ticket
+EXPORTS
+    KkNativeCloudSetTicket=_KkNativeCloudSetTicket@4
+    KkNativeCloudClearTicket=_KkNativeCloudClearTicket@4
+    KkNativeCloudInstall=_KkNativeCloudInstall@4
+    KkNativeCloudRemove=_KkNativeCloudRemove@4
+    KkNativeCloudGetStatus=_KkNativeCloudGetStatus@4
+    KkNativeCloudGetStatusV2=_KkNativeCloudGetStatusV2@4
+    KkNativeCloudGetCoverageDiagnostic=_KkNativeCloudGetCoverageDiagnostic@4
+    KkNativeCloudGetIoDiagnostic=_KkNativeCloudGetIoDiagnostic@4
