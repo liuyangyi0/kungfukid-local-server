@@ -8,6 +8,19 @@ import struct
 FILES=('gfxz-lab.exe','sdo/sdologin/sdologin.exe',
        'sdo/sdologin/SdoBaseClient.dll','sdo/sdologin/duilib.dll')
 MAX_FILE=128*1024*1024
+EXPECTED_EXPORT16_RVA='0xc1b0'
+
+def sdk_compatibility(summary):
+    match=summary.get('export_ordinal_16_rva')==EXPECTED_EXPORT16_RVA
+    return {
+        'expected_export16_rva':EXPECTED_EXPORT16_RVA,
+        'expected_export16_rva_match':match,
+        'adapter_compatibility':'candidate_only' if match else 'unsupported_sdk_layout',
+        'compatibility_note':(
+            'Matching one export does not prove the SDK bundle, ABI or object layouts compatible.' if match else
+            'This SDK does not match the original-window adapter. Do not change the expected RVA or bypass the guard; version-specific ABI and object layouts need verification.'),
+        'compatibility_document':'docs/CLIENT_COMPATIBILITY.md#sdk-build-compatibility',
+    }
 
 def pe_summary(data):
     def read(fmt,offset):
@@ -73,7 +86,7 @@ def main():
                 row.update(size=len(data),sha256=hashlib.sha256(data).hexdigest())
                 if not row['i686']:failures+=1
                 if name.endswith('SdoBaseClient.dll'):
-                    row['expected_export16_rva_match']=row['export_ordinal_16_rva']=='0xc1b0'
+                    row.update(sdk_compatibility(row))
                     failures+=not row['expected_export16_rva_match']
             except (ValueError,OSError) as e:
                 row['error']=type(e).__name__;failures+=1

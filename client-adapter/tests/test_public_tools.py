@@ -6,11 +6,25 @@ import tempfile
 import subprocess
 import unittest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
-from inspect_client import pe_summary,public_key_summary
+from inspect_client import pe_summary,public_key_summary,sdk_compatibility
 from create_local_account import register,compatible_password
 from server.kk_local.auth import AuthError
 
 class PublicToolTests(unittest.TestCase):
+    def test_sdk_layout_mismatch_is_not_reported_as_supported(self):
+        for rva in ('0xc8c0',None):
+            result=sdk_compatibility({'export_ordinal_16_rva':rva})
+            self.assertFalse(result['expected_export16_rva_match'])
+            self.assertEqual(result['adapter_compatibility'],'unsupported_sdk_layout')
+            self.assertEqual(result['expected_export16_rva'],'0xc1b0')
+            self.assertIn('Do not change',result['compatibility_note'])
+
+    def test_export_match_remains_only_a_candidate(self):
+        result=sdk_compatibility({'export_ordinal_16_rva':'0xc1b0'})
+        self.assertTrue(result['expected_export16_rva_match'])
+        self.assertEqual(result['adapter_compatibility'],'candidate_only')
+        self.assertIn('does not prove',result['compatibility_note'])
+
     def test_cli_refuses_piped_password_before_creating_database(self):
         with tempfile.TemporaryDirectory() as d:
             db=Path(d)/'never-created.sqlite3'

@@ -13,6 +13,8 @@
 
 目前没有公开原始客户端、离线GPK适配二进制、原始资源或VM镜像。下面步骤从“授权副本已能到原登录框”开始。如果不能满足这一前提，停在相应问题上，不伪造`kk-roleprop-ready.txt`或把所有服务器请求回成功。
 
+**先核对 SDK，而非只核对游戏版本。** `Version.dat=1.13.0.594` 不保证登录组件兼容。原窗口适配的参考组合使用 `SdoBaseClient.dll 2.2.2.0`、导出序号16 RVA `0xc1b0`；2.3.3.0 的 `0xc8c0` 目前不受支持。若 `inspect_client.py` 返回 `expected_export16_rva_match=false`，不要继续注入或修改常量绕过检查。组件身份、获取渠道边界及贡献要求见[SDK构建兼容性](CLIENT_COMPATIBILITY.md#sdk-build-compatibility)。
+
 ## 1. 环境与依赖
 
 - 客户端和服务放在同一隔离Windows VM。本文的127.0.0.1指VM自身，不是宿主。
