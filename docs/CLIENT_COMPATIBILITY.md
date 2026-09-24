@@ -45,6 +45,7 @@ python client-adapter/tools/inspect_client.py --client-root C:\MyGame
 | [LocalAccountWindow.cs](../tools/client-lab/LocalAccountWindow.cs) | 注册、登录、区服、服务器设置与错误提示 |
 | [NativeCloudHandoff.cs](../tools/client-lab/NativeCloudHandoff.cs) | TLS 认证、内存凭据交接、版本与就绪检查 |
 | [native-cloud-ticket](../tools/client-lab/native-cloud-ticket) | 原套接字票据/加密适配、IAT 覆盖和撤销生命周期 |
+| [kk1_official_flow_probe.c](../tools/client-lab/kk1_official_flow_probe.c) | 已适配客户端的手动上层初始化入口；公开构建使用可移植日志路径 |
 | [kk_sdo_request_adapter.cpp](../client-adapter/src/kk_sdo_request_adapter.cpp) | 原 SDO 窗口分支的请求重定向与公钥适配 |
 | [kk_sdo_input_provider.cpp](../client-adapter/src/kk_sdo_input_provider.cpp) | 原窗口分支的密码输入兼容 |
 | [kk_roleprop_observer.cpp](../client-adapter/src/kk_roleprop_observer.cpp) | 原客户端角色配置表就绪观察 |

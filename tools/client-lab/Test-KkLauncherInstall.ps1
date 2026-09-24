@@ -18,6 +18,18 @@ try{
  $entry=Join-Path $client '功夫小子启动器.exe'
  if(-not(Test-Path -LiteralPath $entry)-or-not(Test-Path -LiteralPath ($entry+'.config'))){throw 'EXE entry is missing'}
  if(@(Get-ChildItem -LiteralPath $client -Recurse -File|Where-Object{$_.Extension-in@('.cmd','.ps1','.cs')}).Count){throw 'User bundle must not require scripts or compiler sources'}
+ # The portable initializer creates its log next to the installed DLL.
+ # No log file is an input or should be copied from a previous machine.
+ $options.initializer_log='auto';[IO.File]::WriteAllText($settings,($options|ConvertTo-Json))
+ & (Join-Path $PSScriptRoot 'Install-KkLauncher.ps1') -ClientRoot $client -NativeCloudSettings $settings -LauncherExecutable $LauncherExecutable|Out-Null
+ $installed=Get-Content -LiteralPath (Join-Path $client 'launcher\launcher.json') -Raw|ConvertFrom-Json
+ $expectedLog=Join-Path $client 'launcher\native-tools\kk1-official-flow.log'
+ if($installed.initializer_log-ne$expectedLog){throw 'Auto initializer log does not match the installed portable DLL location'}
+ if(Test-Path -LiteralPath $expectedLog){throw 'Installer must not invent an initializer readiness log'}
+ $options.initializer_manual_start=$false;[IO.File]::WriteAllText($settings,($options|ConvertTo-Json));$rejected=$false
+ try{& (Join-Path $PSScriptRoot 'Install-KkLauncher.ps1') -ClientRoot $client -NativeCloudSettings $settings -LauncherExecutable $LauncherExecutable|Out-Null}catch{$rejected=$true}
+ if(-not$rejected){throw 'Auto log accepted an automatic legacy initializer'}
+ $options.initializer_manual_start=$true
  $options['password']='not-a-real-secret';[IO.File]::WriteAllText($settings,($options|ConvertTo-Json));$rejected=$false
  try{& (Join-Path $PSScriptRoot 'Install-KkLauncher.ps1') -ClientRoot $client -NativeCloudSettings $settings -LauncherExecutable $LauncherExecutable|Out-Null}catch{$rejected=$true}
  if(-not$rejected){throw 'Installer accepted secret-bearing settings'}

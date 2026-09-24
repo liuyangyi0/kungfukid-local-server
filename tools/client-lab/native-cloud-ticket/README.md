@@ -12,6 +12,44 @@
 
 路径由安装配置指定。客户端运行环境不构成服务端的信任凭证；第三方也可按 [SERVICE](../../../docs/SERVICE.md) 直接实现接入。
 
+## 先构建三个接入工具
+
+仓库提供自有工具源码，不分发原游戏二进制。需要 VS2022 Community、MSVC 14.36 x86 工具集与 Windows SDK。下列命令在仓库根目录执行，输出目录必须尚不存在：
+
+```powershell
+powershell -NoProfile -File tools/client-lab/native-cloud-ticket/Build.ps1 -OutputDirectory build/cloud-adapter
+powershell -NoProfile -File tools/client-lab/Build-KkClientInitializer.ps1 -OutputDirectory build/client-initializer
+```
+
+| 安装依赖 | 源码 | 构建产物 |
+|---|---|---|
+| 加密票据适配 | [adapter.cpp](adapter.cpp) | `build/cloud-adapter/kk_native_cloud_ticket.dll` |
+| 手动初始化器 | [kk1_official_flow_probe.c](../kk1_official_flow_probe.c) | `build/client-initializer/kk1-official-flow.dll` |
+| DLL 加载工具 | [kk_inject.c](../../../client-adapter/src/kk_inject.c) | `build/client-initializer/kk_inject.exe` |
+
+`Build-KkClientInitializer.ps1` 固定开启 `KK_OFFICIAL_FLOW_MANUAL_START` 和 `KK_OFFICIAL_FLOW_PORTABLE`，以 i686 编译，并通过 `.def` 导出不带修饰的 `KkOfficialFlowBegin`。不要自行省略这些选项或用旧自动启动探针替代。
+
+初始化器复用现有已适配客户端的上层初始化调用，在客户端 UI 线程处理启动请求；不是 GPK 适配器，也不能把未适配的原版安装包直接变成可用客户端。地址/入口检查只是保护条件，不是任意 `1.13.0.594` 文件均兼容的证明。
+
+构建内置自有 i686 模型测试：检查手动导出、拒绝无关进程和 DLL 相邻日志路径，不加载原客户端或连接任何服务。该测试会生成自己的模型日志，**不要把构建目录的日志复制到客户端**。
+
+## 配置初始化器日志
+
+`initializer.log` 不是缺失的下载文件。新初始化器运行时在自身 DLL 所在目录创建 `kk1-official-flow.log`，角色表就绪后另生成 `kk1-roleprop-ready.txt`。安装目录必须允许当前用户写入这两个文件。
+
+安装前的配置推荐：
+
+```json
+{
+  "initializer_manual_start": true,
+  "initializer_log": "auto"
+}
+```
+
+这是 [launcher.example.json](launcher.example.json) 的字段片段，不是完整配置。将 `adapter_dll / injector_path / initializer_dll` 分别指向上表实际构建产物，再填写认证端点和公开证书配置。
+
+安装器将 `auto` 转成游戏目录下 `launcher/native-tools/kk1-official-flow.log` 的完整路径，启动器据此检查本次进程的新日志；不会创建虚假的就绪日志。仍使用旧初始化器时，显式填写其真实日志路径，不可套用 `auto`。直接绕过安装器读取源配置的开发工具不解释这个安装期占位值。
+
 ## C# EXE 登录入口（2026-09-23）
 
 从仓库根目录构建、测试并安装：
@@ -25,7 +63,7 @@ powershell -NoProfile -File tools/client-lab/Install-KkLauncher.ps1 -ClientRoot 
 
 安装前复制并填写 [launcher.example.json](launcher.example.json)。安装器复制 EXE、EXE.config、自有工具及 `launcher/` 配置目录；可建立直接指向 EXE 的桌面快捷方式，不修改游戏二进制。EXE 和配套目录须一起保留。
 
-`initializer_log` 必须对应初始化器实际输出位置；`initializer_manual_start=true` 要求初始化器导出 `KkOfficialFlowBegin`。不能任意换用自动启动版本。初始化器仍是版本适配组件，不是所有客户端通用的启动模块。
+`initializer_log` 必须对应初始化器实际输出位置；上节的新构建使用 `auto` 由安装器填写。`initializer_manual_start=true` 要求初始化器导出 `KkOfficialFlowBegin`。不能任意换用自动启动版本。初始化器仍是版本适配组件，不是所有客户端通用的启动模块。
 
 玩家流程：
 

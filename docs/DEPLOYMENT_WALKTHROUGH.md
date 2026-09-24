@@ -75,7 +75,7 @@ python client-adapter/tools/inspect_client.py --client-root C:\MyGame
 
 ## 5. 构建和安装登录器
 
-需要 Windows x64 / .NET Framework 4.8。按[登录器安装文档](../tools/client-lab/native-cloud-ticket/README.md)编译 EXE、准备工具与 `launcher.json`，再运行安装器。完整入口如下：
+需要 Windows x64 / .NET Framework 4.8。先按[接入工具构建说明](../tools/client-lab/native-cloud-ticket/README.md#先构建三个接入工具)编译加密 DLL、初始化器和注入器，再准备 `launcher.json`、编译 EXE 并运行安装器。初始化器源码已包含；`initializer_log: "auto"` 由安装器解析，日志运行时生成，不需要自行下载或伪造。入口如下：
 
 ```powershell
 powershell -NoProfile -File tools/client-lab/Build-KkLauncher.ps1 -OutputDirectory build/launcher

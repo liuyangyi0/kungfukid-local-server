@@ -23,8 +23,11 @@ foreach($field in @('adapter_dll','injector_path','initializer_dll','certificate
  $files[$field]=$path
 }
 if(-not$settings.PSObject.Properties['initializer_log'] -or -not$settings.initializer_log){throw 'initializer_log must match the installed initializer build'}
-if(-not[IO.Path]::IsPathRooted($settings.initializer_log)){$settings.initializer_log=[IO.Path]::GetFullPath((Join-Path $source $settings.initializer_log))}
 $destination=Join-Path $client 'launcher'
+if($settings.initializer_log-eq'auto'){
+ if(-not$settings.PSObject.Properties['initializer_manual_start'] -or $settings.initializer_manual_start-ne$true){throw 'Auto log requires the portable manual-start initializer'}
+ $settings.initializer_log=Join-Path $destination 'native-tools\kk1-official-flow.log'
+}elseif(-not[IO.Path]::IsPathRooted($settings.initializer_log)){$settings.initializer_log=[IO.Path]::GetFullPath((Join-Path $source $settings.initializer_log))}
 New-Item -ItemType Directory -Path (Join-Path $destination 'native-tools') -Force | Out-Null
 foreach($field in $files.Keys){
  $name=switch($field){'adapter_dll'{'kk_native_cloud_ticket.dll'};'injector_path'{'kk_inject.exe'};'initializer_dll'{'kk1-official-flow.dll'};'certificate_path'{'server.cer'}}

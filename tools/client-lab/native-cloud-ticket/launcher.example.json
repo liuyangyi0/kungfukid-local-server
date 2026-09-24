@@ -9,7 +9,7 @@
   "adapter_dll": "C:\\MyGame\\native-tools\\kk_native_cloud_ticket.dll",
   "injector_path": "C:\\MyGame\\native-tools\\kk_inject.exe",
   "initializer_dll": "C:\\MyGame\\native-tools\\kk1-official-flow.dll",
-  "initializer_log": "C:\\MyGame\\initializer.log",
+  "initializer_log": "auto",
   "initializer_manual_start": true,
   "certificate_path": ""
 }

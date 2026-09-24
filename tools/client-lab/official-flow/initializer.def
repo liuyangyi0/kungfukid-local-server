@@ -1,0 +1,3 @@
+LIBRARY kk1-official-flow
+EXPORTS
+    KkOfficialFlowBegin=_KkOfficialFlowBegin@4

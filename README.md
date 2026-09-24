@@ -103,7 +103,7 @@ python -m server.kk_local --settings /etc/kk-server/public.json
 powershell -NoProfile -File tools/client-lab/Build-KkLauncher.ps1 -OutputDirectory build/launcher
 ```
 
-仅有 EXE 还不够：还需兼容客户端、配套适配 DLL、注入器、初始化器与安装配置。请按[登录器构建与安装说明](tools/client-lab/native-cloud-ticket/README.md)准备完整目录，不要单独拷贝 EXE 后期待自动完成客户端适配。
+仅有 EXE 还不够：还需兼容客户端、配套适配 DLL、注入器、初始化器与安装配置。三个工具均提供自有源码及[构建与安装说明](tools/client-lab/native-cloud-ticket/README.md#先构建三个接入工具)，其中 `Build-KkClientInitializer.ps1` 生成 `kk1-official-flow.dll` 和 `kk_inject.exe`；初始化日志运行时自动生成。不要单独拷贝 EXE 后期待自动完成客户端适配。
 
 “服务器设置”中的证书名称是证书对应的域名或 IP，**不是证书文件路径**。公开证书的加载路径由安装配置指定；不会自动信任陌生服务器提供的证书。密码错误有独立提示，密码和授权凭据不会保存到地址设置中。
 
