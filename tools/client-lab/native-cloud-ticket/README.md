@@ -35,7 +35,7 @@ powershell -NoProfile -File tools/client-lab/Build-KkClientInitializer.ps1 -Outp
 
 ## 配置初始化器日志
 
-`initializer.log` 不是缺失的下载文件。新初始化器运行时在自身 DLL 所在目录创建 `kk1-official-flow.log`，角色表就绪后另生成 `kk1-roleprop-ready.txt`。安装目录必须允许当前用户写入这两个文件。
+`initializer.log` 不是缺失的下载文件。新初始化器运行时在自身 DLL 所在目录创建 `kk1-official-flow.log`，角色表就绪后另生成 `kk1-roleprop-ready.txt`。安装目录必须允许当前用户写入这两个文件；加载时如果日志不可写，DLL 直接拒绝加载，不再继续初始化后让登录器等待超时。
 
 安装前的配置推荐：
 
@@ -48,7 +48,7 @@ powershell -NoProfile -File tools/client-lab/Build-KkClientInitializer.ps1 -Outp
 
 这是 [launcher.example.json](launcher.example.json) 的字段片段，不是完整配置。将 `adapter_dll / injector_path / initializer_dll` 分别指向上表实际构建产物，再填写认证端点和公开证书配置。
 
-安装器将 `auto` 转成游戏目录下 `launcher/native-tools/kk1-official-flow.log` 的完整路径，启动器据此检查本次进程的新日志；不会创建虚假的就绪日志。仍使用旧初始化器时，显式填写其真实日志路径，不可套用 `auto`。直接绕过安装器读取源配置的开发工具不解释这个安装期占位值。
+安装器将 `auto` 保存成相对配置目录的 `native-tools/kk1-official-flow.log`，启动器在加载配置时解析成实际位置，并检查本次进程的新日志；整个游戏目录搬迁后仍有效。安装器不会创建虚假的就绪日志。仍使用旧初始化器时，显式填写其真实日志路径，不可套用 `auto`。直接绕过安装器读取源配置的开发工具不解释这个安装期占位值。
 
 ## C# EXE 登录入口（2026-09-23）
 
@@ -62,6 +62,8 @@ powershell -NoProfile -File tools/client-lab/Install-KkLauncher.ps1 -ClientRoot 
 ```
 
 安装前复制并填写 [launcher.example.json](launcher.example.json)。安装器复制 EXE、EXE.config、自有工具及 `launcher/` 配置目录；可建立直接指向 EXE 的桌面快捷方式，不修改游戏二进制。EXE 和配套目录须一起保留。
+
+安装器先复用提供的启动器 EXE 中的配置验证器，拒绝错误端点、端口及缺失工具，再写入安装目录；配置文件使用同目录临时文件原子替换。安装前应关闭正在使用该目录的游戏和启动器，这不等于整个安装目录具备断电事务回滚能力。
 
 `initializer_log` 必须对应初始化器实际输出位置；上节的新构建使用 `auto` 由安装器填写。`initializer_manual_start=true` 要求初始化器导出 `KkOfficialFlowBegin`。不能任意换用自动启动版本。初始化器仍是版本适配组件，不是所有客户端通用的启动模块。
 

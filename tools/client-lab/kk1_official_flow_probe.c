@@ -17,6 +17,7 @@ static wchar_t ready_path[MAX_PATH];
 static int init_paths(HINSTANCE module){
  DWORD length=GetModuleFileNameW(module,log_path,MAX_PATH);
  wchar_t* slash;
+ FILE* file;
  if(!length||length>=MAX_PATH)return 0;
  slash=wcsrchr(log_path,L'\\');
  if(!slash||(size_t)(slash-log_path)+1+wcslen(L"kk1-roleprop-ready.txt")>=MAX_PATH)return 0;
@@ -24,6 +25,11 @@ static int init_paths(HINSTANCE module){
  wcscpy(ready_path,log_path);
  wcscat(log_path,L"kk1-official-flow.log");
  wcscat(ready_path,L"kk1-roleprop-ready.txt");
+ // Readiness depends on this log. Fail before registering callbacks or starting
+ // the worker instead of allowing a hidden startup failure and launcher timeout.
+ file=_wfopen(log_path,L"ab");
+ if(!file)return 0;
+ if(fclose(file)!=0)return 0;
  return 1;
 }
 #else

@@ -7,7 +7,8 @@
 typedef DWORD (WINAPI *Begin)(void*);
 int wmain(int argc,wchar_t** argv){
  wchar_t log[MAX_PATH];wchar_t* slash;char text[4096];DWORD start;HMODULE dll;Begin begin;
- if(argc!=2||wcslen(argv[1])>=MAX_PATH)return 10;
+ int readonly_test=argc==3&&wcscmp(argv[2],L"--readonly-log")==0;
+ if((argc!=2&&!readonly_test)||wcslen(argv[1])>=MAX_PATH)return 10;
  wcscpy(log,argv[1]);slash=wcsrchr(log,L'\\');
  if(!slash)return 11;
  slash[1]=0;
@@ -15,6 +16,20 @@ int wmain(int argc,wchar_t** argv){
  wcscat(log,L"kk1-official-flow.log");
  // Use a fresh build directory; do not accept a previous run's log.
  if(GetFileAttributesW(log)!=INVALID_FILE_ATTRIBUTES)return 13;
+ if(readonly_test){
+  DWORD load_error;
+  HANDLE file=CreateFileW(log,GENERIC_WRITE,0,NULL,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,NULL);
+  if(file==INVALID_HANDLE_VALUE)return 20;
+  CloseHandle(file);
+  if(!SetFileAttributesW(log,FILE_ATTRIBUTE_READONLY))return 21;
+  dll=LoadLibraryW(argv[1]);
+  load_error=GetLastError();
+  if(dll){fputs("FAIL: initializer loaded with an unwritable log\n",stderr);return 23;}
+  if(!SetFileAttributesW(log,FILE_ATTRIBUTE_NORMAL)||!DeleteFileW(log))return 22;
+  if(load_error!=ERROR_DLL_INIT_FAILED)return 24;
+  puts("PASS: unwritable initializer log rejects DLL load before callbacks or worker start.");
+  return 0;
+ }
  dll=LoadLibraryW(argv[1]);if(!dll)return 14;
  begin=(Begin)(void*)GetProcAddress(dll,"KkOfficialFlowBegin");if(!begin)return 15;
  if(begin(NULL)!=ERROR_NOT_READY)return 16;

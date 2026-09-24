@@ -21,6 +21,7 @@ $flags=' /nologo /TC /W4 /WX /utf-8 /MT /D_CRT_SECURE_NO_WARNINGS'
 $command='call "'+$vc+'" x86 -vcvars_ver=14.36 >nul'
 $command+=' && cl'+$flags+' /LD /DKK_OFFICIAL_FLOW_MANUAL_START /DKK_OFFICIAL_FLOW_PORTABLE "'+$source+'" /Fo"'+$out+'\initializer.obj" /link user32.lib /DEF:"'+$definition+'" /OUT:"'+$out+'\kk1-official-flow.dll"'
 $command+=' && cl'+$flags+' "'+$model+'" /Fo"'+$out+'\model.obj" /Fe"'+$out+'\initializer-model.exe"'
+$command+=' && "'+$out+'\initializer-model.exe" "'+$out+'\kk1-official-flow.dll" --readonly-log'
 $command+=' && "'+$out+'\initializer-model.exe" "'+$out+'\kk1-official-flow.dll"'
 $command+=' && cl'+$flags+' "'+$injector+'" /Fo"'+$out+'\injector.obj" /Fe"'+$out+'\kk_inject.exe"'
 Push-Location -LiteralPath $out

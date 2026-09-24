@@ -3,13 +3,13 @@
   "source_files": [
     {
       "path": "tools/client-lab/kk1_official_flow_probe.c",
-      "bytes": 7558,
-      "sha256": "f06209253e62aae3f44e86762c1d0d899df040e0183eacae2cfd6afd1d02b784"
+      "bytes": 7815,
+      "sha256": "ab71bdc63d7f4e99e6f9e502769c1d1f637933ac99a2e705121f17b677645c50"
     },
     {
       "path": "tools/client-lab/Build-KkClientInitializer.ps1",
-      "bytes": 2299,
-      "sha256": "dca3281131f9c398a33d992f8e380d225dfe53e7a31b033e9b44d43269389fe5"
+      "bytes": 2396,
+      "sha256": "67e650343dca6b094aa85aabcf2e3e9997cd6b5da2ed6a849e1a5e400913eba9"
     },
     {
       "path": "tools/client-lab/official-flow/initializer.def",
@@ -18,8 +18,8 @@
     },
     {
       "path": "tools/client-lab/official-flow/initializer_model.c",
-      "bytes": 1526,
-      "sha256": "55cc3278b9f739000cdc6a1f1d29b129a830451a13c2ce46548fc2b51611598a"
+      "bytes": 2258,
+      "sha256": "bda05c83e186b8c271bb58d3c377b8e0334bc72e6c7d54463b036c5e84e043ad"
     },
     {
       "path": "CONTRIBUTING.md",
@@ -48,8 +48,8 @@
     },
     {
       "path": "tools/client-lab/Install-KkLauncher.ps1",
-      "bytes": 3919,
-      "sha256": "e40803bc9762249b771925211c3c631f9bc2e5ed03efb77b116906ebd6b63cf6"
+      "bytes": 5326,
+      "sha256": "6fb6aa0af0efafdebceac36c23fc0b3deb010f47509c05c95addadaae99a00c8"
     },
     {
       "path": "tools/client-lab/Test-KkLauncherExe.ps1",
@@ -58,8 +58,8 @@
     },
     {
       "path": "tools/client-lab/Test-KkLauncherInstall.ps1",
-      "bytes": 3929,
-      "sha256": "0f863243a25ea4b7414738ba14148382d22df086af359e6f49b0c8522c88e953"
+      "bytes": 7008,
+      "sha256": "66802100c7ecdc46672df2e75c4dcf0051fe5d63fdff267aa4ecbfdfdb538a1f"
     },
     {
       "path": "tools/client-lab/native-cloud-ticket/stream_observation.hpp",
@@ -1448,8 +1448,8 @@
     },
     {
       "path": "tools/client-lab/native-cloud-ticket/README.md",
-      "bytes": 14440,
-      "sha256": "ad0c801ce544af5a429df51fc8115e3a625fc243ccdba358349c66b42981c56b"
+      "bytes": 14936,
+      "sha256": "79b243aaa1297d6ff7bdb79cb116556c92e9def067d9a731b4b796b9e4acad45"
     },
     {
       "path": "tools/client-lab/NativeCloudHandoff.cs",
